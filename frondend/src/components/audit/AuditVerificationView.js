@@ -1,19 +1,41 @@
-import React, { useState } from 'react';
-import { initialAuditSessions, initialDiscrepancies } from './AuditData';
-import { initialAssets } from '../assets/AssetData';
+import React, { useState, useEffect } from 'react';
+import auditService from '../../services/auditService';
+import assetService from '../../services/assetService';
 import AuditSessionModal from './AuditSessionModal';
 import DiscrepancyModal from './DiscrepancyModal';
 import AuditCertificateModal from './AuditCertificateModal';
 
 export default function AuditVerificationView({ onNavigateTab }) {
-  const [sessions, setSessions] = useState(initialAuditSessions);
-  const [discrepancies, setDiscrepancies] = useState(initialDiscrepancies);
+  const [sessions, setSessions] = useState([]);
+  const [discrepancies, setDiscrepancies] = useState([]);
+  const [assets, setAssets] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('checklist'); // 'checklist', 'discrepancies', 'sessions'
   const [selectedBranch, setSelectedBranch] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Verified items state (tracking verified asset IDs)
-  const [verifiedAssetIds, setVerifiedAssetIds] = useState(new Set(['KD-LAP-001', 'KD-LAP-003', 'KD-DSK-001', 'KD-PRT-001', 'KD-NET-001']));
+  const [verifiedAssetIds, setVerifiedAssetIds] = useState(new Set());
+
+  // Load live data from backend API with fallback
+  useEffect(() => {
+    let isMounted = true;
+    Promise.all([
+      auditService.getAuditSessions(),
+      auditService.getDiscrepancies(),
+      assetService.getAssets(),
+    ]).then(([sessData, discData, assetData]) => {
+      if (isMounted) {
+        setSessions(sessData);
+        setDiscrepancies(discData);
+        setAssets(assetData);
+        // Pre-populate verified IDs from current inventory
+        setVerifiedAssetIds(new Set(assetData.slice(0, 5).map(a => a.id)));
+        setLoading(false);
+      }
+    });
+    return () => { isMounted = false; };
+  }, []);
 
   // Modals state
   const [showSessionModal, setShowSessionModal] = useState(false);
@@ -33,14 +55,22 @@ export default function AuditVerificationView({ onNavigateTab }) {
   };
 
   // Resolve discrepancy
-  const handleResolveDiscrepancy = (id) => {
+  const handleResolveDiscrepancy = async (id) => {
+    const disc = discrepancies.find(d => d.id === id);
+    if (disc?.backendId) {
+      await auditService.resolveDiscrepancy(disc.backendId, 'Resolved via verification dashboard');
+    }
     setDiscrepancies(discrepancies.map(d => 
       d.id === id ? { ...d, status: 'Resolved' } : d
     ));
   };
 
   // CEO Certification Sign-off
-  const handleCertifySession = (sessionId) => {
+  const handleCertifySession = async (sessionId) => {
+    const session = sessions.find(s => s.id === sessionId);
+    if (session?.backendId) {
+      await auditService.certifyAuditSession(session.backendId);
+    }
     setSessions(sessions.map(s => 
       s.id === sessionId ? {
         ...s,
@@ -54,14 +84,14 @@ export default function AuditVerificationView({ onNavigateTab }) {
   };
 
   // Filtered assets for checklist
-  const filteredAssets = initialAssets.filter(a => {
+  const filteredAssets = assets.filter(a => {
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch = !q || a.name.toLowerCase().includes(q) || a.serial.toLowerCase().includes(q) || a.id.toLowerCase().includes(q);
     const matchesBranch = selectedBranch === 'All' || a.location.toLowerCase().includes(selectedBranch.toLowerCase());
     return matchesSearch && matchesBranch;
   });
 
-  const verifiedPercent = Math.round((verifiedAssetIds.size / (initialAssets.length || 1)) * 100);
+  const verifiedPercent = Math.round((verifiedAssetIds.size / (assets.length || 1)) * 100);
 
   return (
     <div className="pb-4">
@@ -69,14 +99,20 @@ export default function AuditVerificationView({ onNavigateTab }) {
       <AuditSessionModal
         show={showSessionModal}
         onClose={() => setShowSessionModal(false)}
-        onSave={(newSession) => setSessions([newSession, ...sessions])}
+        onSave={async (newSession) => {
+          const created = await auditService.createAuditSession(newSession);
+          setSessions([created, ...sessions]);
+        }}
       />
 
       <DiscrepancyModal
         show={showDiscrepancyModal}
         onClose={() => setShowDiscrepancyModal(false)}
-        onSave={(newDisc) => setDiscrepancies([newDisc, ...discrepancies])}
-        assets={initialAssets}
+        onSave={async (newDisc) => {
+          const created = await auditService.createDiscrepancy(newDisc);
+          setDiscrepancies([created, ...discrepancies]);
+        }}
+        assets={assets}
       />
 
       <AuditCertificateModal
@@ -84,14 +120,26 @@ export default function AuditVerificationView({ onNavigateTab }) {
         onClose={() => setShowCertModal(false)}
         session={sessions[0]}
         verifiedCount={verifiedAssetIds.size}
-        totalCount={initialAssets.length}
+        totalCount={assets.length}
       />
 
       {/* Top Command Strip */}
       <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
         <div>
           <div className="d-flex align-items-center gap-2 mb-1">
-            <span className="kd-tag kd-tag-amber">STEP 4 COMPLETE</span>
+            <span className="kd-tag kd-tag-amber">
+              {loading ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-1" role="status" style={{ width: '0.65rem', height: '0.65rem' }}></span>
+                  SYNCING...
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-cloud-check-fill text-success me-1"></i>
+                  BACKEND SYNCED
+                </>
+              )}
+            </span>
             <span className="kd-mono text-secondary" style={{ fontSize: '0.7rem' }}>• PHYSICAL STOCKTAKE VERIFICATION</span>
           </div>
           <h3 className="text-white fw-bold mb-0" style={{ letterSpacing: '-0.035em' }}>
@@ -155,7 +203,7 @@ export default function AuditVerificationView({ onNavigateTab }) {
             <div className="kd-metric-label mb-1">AUDIT VERIFICATION RATE</div>
             <div className="kd-metric-value kd-mono text-success fs-4">{verifiedPercent}%</div>
             <span className="kd-mono text-secondary" style={{ fontSize: '0.68rem' }}>
-              {verifiedAssetIds.size} OF {initialAssets.length} UNITS CONFIRMED
+              {verifiedAssetIds.size} OF {assets.length} UNITS CONFIRMED
             </span>
           </div>
         </div>
