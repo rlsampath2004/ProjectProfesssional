@@ -1,6 +1,7 @@
 package com.kothari.dashboard.auth.controller;
 
 import com.kothari.dashboard.auth.dto.*;
+import com.kothari.dashboard.auth.entity.User;
 import com.kothari.dashboard.auth.service.AuthService;
 import com.kothari.dashboard.common.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,9 +12,9 @@ import org.springframework.data.util.Pair;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
 import java.util.UUID;
 
 @RestController
@@ -57,19 +58,17 @@ public class AuthController {
     }
 
     @PostMapping("/mfa/setup")
-    public ResponseEntity<ApiResponse<MfaSetupResponse>> setupMfa(Principal principal) {
-        UUID userId = UUID.fromString(principal.getName());
-        MfaSetupResponse response = authService.setupMfa(userId);
+    public ResponseEntity<ApiResponse<MfaSetupResponse>> setupMfa(@AuthenticationPrincipal User currentUser) {
+        MfaSetupResponse response = authService.setupMfa(currentUser.getId());
         return ResponseEntity.ok(ApiResponse.ok("MFA setup generated", response));
     }
 
     @PostMapping("/mfa/confirm")
     public ResponseEntity<ApiResponse<Void>> confirmMfa(
-            Principal principal,
+            @AuthenticationPrincipal User currentUser,
             @RequestParam String code) {
 
-        UUID userId = UUID.fromString(principal.getName());
-        authService.confirmMfaSetup(userId, code);
+        authService.confirmMfaSetup(currentUser.getId(), code);
         return ResponseEntity.ok(ApiResponse.ok("MFA successfully confirmed and enabled", null));
     }
 
@@ -103,13 +102,12 @@ public class AuthController {
 
     @PostMapping("/logout-all")
     public ResponseEntity<ApiResponse<Void>> logoutAll(
-            Principal principal,
+            @AuthenticationPrincipal User currentUser,
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
 
-        UUID userId = UUID.fromString(principal.getName());
         String ip = getClientIp(httpRequest);
-        authService.logoutAllDevices(userId, ip);
+        authService.logoutAllDevices(currentUser.getId(), ip);
         clearRefreshCookie(httpResponse);
 
         return ResponseEntity.ok(ApiResponse.ok("All active sessions terminated immediately", null));
@@ -117,11 +115,10 @@ public class AuthController {
 
     @PostMapping("/change-password")
     public ResponseEntity<ApiResponse<Void>> changePassword(
-            Principal principal,
+            @AuthenticationPrincipal User currentUser,
             @Valid @RequestBody ChangePasswordRequest request) {
 
-        UUID userId = UUID.fromString(principal.getName());
-        authService.changePassword(userId, request);
+        authService.changePassword(currentUser.getId(), request);
         return ResponseEntity.ok(ApiResponse.ok("Password changed successfully. All sessions revoked.", null));
     }
 
