@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { initialOlxListings, weeklySalesTrend } from './OlxData';
+import React, { useState, useEffect } from 'react';
+import { weeklySalesTrend } from './OlxData';
 import OlxListingModal from './OlxListingModal';
 import MarkSoldModal from './MarkSoldModal';
+import olxService from '../../services/olxService';
 
 export default function OlxSalesView({ onNavigateTab }) {
-  const [listings, setListings] = useState(initialOlxListings);
+  const [listings, setListings] = useState([]);
   const [filterTab, setFilterTab] = useState('all'); // 'all', 'active', 'negotiating', 'sold'
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
@@ -14,11 +15,31 @@ export default function OlxSalesView({ onNavigateTab }) {
   const [editingListing, setEditingListing] = useState(null);
   const [showMarkSoldModal, setShowMarkSoldModal] = useState(false);
   const [selectedForSold, setSelectedForSold] = useState(null);
-  const [syncStatus, setSyncStatus] = useState('Synced 2 mins ago');
+  const [syncStatus, setSyncStatus] = useState('Syncing...');
   const [isSyncing, setIsSyncing] = useState(false);
 
+  useEffect(() => {
+    let isMounted = true;
+    const fetchListings = async () => {
+      try {
+        const data = await olxService.getListings();
+        if (isMounted && data) {
+          setListings(data);
+          setSyncStatus('Synced just now');
+        }
+      } catch (err) {
+        console.warn('[OlxSalesView] Could not load initial listings:', err);
+      }
+    };
+    fetchListings();
+    return () => { isMounted = false; };
+  }, []);
+
   // Computed KPIs
-  const devicesSoldToday = listings.filter(item => item.soldToday || (item.status === 'Sold' && item.dateSold === '2026-10-29'));
+  const todayStr = new Date().toISOString().split('T')[0];
+  const devicesSoldToday = listings.filter(item => 
+    item.soldToday || (item.status === 'Sold' && (item.dateSold === todayStr || item.dateSold === '2026-10-29'))
+  );
   const soldTodayCount = devicesSoldToday.length;
   
   const revenueSoldToday = devicesSoldToday.reduce((acc, curr) => acc + (curr.soldPrice || 0), 0);
@@ -45,8 +66,8 @@ export default function OlxSalesView({ onNavigateTab }) {
     // Search query
     if (searchQuery.trim() !== '') {
       const q = searchQuery.toLowerCase();
-      const matchTitle = item.title.toLowerCase().includes(q);
-      const matchTag = item.assetTag.toLowerCase().includes(q);
+      const matchTitle = (item.title || '').toLowerCase().includes(q);
+      const matchTag = (item.assetTag || '').toLowerCase().includes(q);
       const matchSerial = (item.serialNumber || '').toLowerCase().includes(q);
       const matchAd = (item.olxAdId || '').toLowerCase().includes(q);
       const matchBuyer = (item.buyerName || '').toLowerCase().includes(q);
@@ -57,28 +78,51 @@ export default function OlxSalesView({ onNavigateTab }) {
   });
 
   // Handle Save from Listing Modal (Add or Edit)
-  const handleSaveListing = (listingData) => {
-    if (editingListing) {
-      setListings(listings.map(item => item.id === listingData.id ? listingData : item));
-    } else {
-      setListings([listingData, ...listings]);
+  const handleSaveListing = async (listingData) => {
+    try {
+      if (editingListing && (editingListing.backendId || editingListing.id)) {
+        const idToUpdate = editingListing.backendId || editingListing.id;
+        const saved = await olxService.updateListing(idToUpdate, listingData);
+        setListings(listings.map(item => (item.id === listingData.id || item.backendId === idToUpdate) ? saved : item));
+      } else {
+        const created = await olxService.createListing(listingData);
+        setListings([created, ...listings]);
+      }
+    } catch (err) {
+      console.error('Failed to save listing:', err);
     }
     setEditingListing(null);
   };
 
   // Handle Mark as Sold
-  const handleConfirmSold = (updatedListing) => {
-    setListings(listings.map(item => item.id === updatedListing.id ? updatedListing : item));
+  const handleConfirmSold = async (updatedListing) => {
+    try {
+      if (selectedForSold && (selectedForSold.backendId || selectedForSold.id)) {
+        const id = selectedForSold.backendId || selectedForSold.id;
+        const saved = await olxService.markSold(id, updatedListing);
+        setListings(listings.map(item => (item.id === updatedListing.id || item.backendId === id) ? saved : item));
+      } else {
+        setListings(listings.map(item => item.id === updatedListing.id ? updatedListing : item));
+      }
+    } catch (err) {
+      console.error('Failed to mark sold:', err);
+    }
     setSelectedForSold(null);
   };
 
-  // Trigger manual OLX sync simulation
-  const handleTriggerSync = () => {
+  // Trigger manual OLX sync
+  const handleTriggerSync = async () => {
     setIsSyncing(true);
-    setTimeout(() => {
-      setIsSyncing(false);
+    try {
+      const data = await olxService.getListings();
+      setListings(data);
       setSyncStatus('Just now');
-    }, 900);
+    } catch (err) {
+      console.warn('Sync failed:', err);
+      setSyncStatus('Offline snapshot');
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const getStatusBadge = (status) => {

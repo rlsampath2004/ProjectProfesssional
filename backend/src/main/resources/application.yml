@@ -1,0 +1,97 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: kothari-dashboard-backend
+  profiles:
+    active: dev
+  threads:
+    virtual:
+      enabled: true # Enable Java 21 Project Loom lightweight virtual threads for high concurrency
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
+# --- Development Profile (H2 In-Memory) ---
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:h2:mem:kotharidb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+    driverClassName: org.h2.Driver
+    username: sa
+    password: ""
+  h2:
+    console:
+      enabled: false # Disabled for security hardening
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+# --- Production Profile (PostgreSQL with TLS) ---
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/kothari_asset_db?sslmode=require}
+    username: ${SPRING_DATASOURCE_USERNAME:kothari_admin}
+    password: ${SPRING_DATASOURCE_PASSWORD:ChangeMeSecurely123!}
+    driverClassName: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 3
+      idle-timeout: 300000
+      max-lifetime: 600000
+      connection-timeout: 20000
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate # Schema migrations managed by Flyway / DDL in production
+    show-sql: false
+
+# --- Application-specific Security & Business Config ---
+app:
+  security:
+    jwt:
+      # In production, replace with RSA 2048 private/public keys or 512-bit HMAC
+      secret: ${APP_JWT_SECRET:4c8b2e1f9a7d6c5b4a3e2d1f0e9d8c7b6a5f4e3d2c1b0a9f8e7d6c5b4a3e2d1f}
+      access-token-expiration-ms: 600000 # 10 Minutes
+      refresh-token-expiration-ms: 604800000 # 7 Days
+    cors:
+      allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000}
+    argon2:
+      salt-length: 16
+      hash-length: 32
+      parallelism: 1
+      memory-cost: 65536 # 64 MB
+      iterations: 3
+    rate-limit:
+      capacity: 30
+      refill-tokens: 30
+      refill-duration-seconds: 60
+  excel:
+    max-rows: 2000
+    zip-bomb-max-entry-size: 5242880 # 5 MB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: when_authorized
+

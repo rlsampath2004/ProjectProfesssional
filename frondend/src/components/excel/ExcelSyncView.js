@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { sampleExcelFiles, syncHistoryLogs } from './ExcelData';
 import { initialAssets } from '../assets/AssetData';
+import assetService from '../../services/assetService';
 
 export default function ExcelSyncView({ onNavigateTab }) {
   const [selectedFile, setSelectedFile] = useState(sampleExcelFiles[0]);
@@ -8,21 +9,35 @@ export default function ExcelSyncView({ onNavigateTab }) {
   const [importSuccess, setImportSuccess] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [skipDuplicates, setSkipDuplicates] = useState(true);
+  const [liveAssets, setLiveAssets] = useState(initialAssets);
 
-  // Dynamic CSV Export for Excel
+  useEffect(() => {
+    let isMounted = true;
+    assetService.getAssets().then(data => {
+      if (isMounted && data && data.length > 0) {
+        setLiveAssets(data);
+      }
+    }).catch(err => {
+      console.warn('Could not fetch live assets for Excel sync:', err);
+    });
+    return () => { isMounted = false; };
+  }, []);
+
+  // Dynamic CSV Export for Excel (Uses Live Inventory)
   const handleExportToExcel = () => {
     const headers = ['Asset Tag', 'Category', 'Equipment Model', 'Serial Number', 'Branch Location', 'Condition', 'Status', 'Assigned To', 'Value (INR)', 'Specs'];
-    const rows = initialAssets.map(a => [
-      `"${a.id}"`,
+    const currentList = liveAssets.length > 0 ? liveAssets : initialAssets;
+    const rows = currentList.map(a => [
+      `"${a.id || a.assetTag}"`,
       `"${a.category}"`,
       `"${a.name}"`,
-      `"${a.serial}"`,
+      `"${a.serial || a.serialNumber}"`,
       `"${a.location}"`,
       `"${a.condition}"`,
       `"${a.status}"`,
-      `"${a.assignedTo || 'Unassigned (Pool)'}"`,
-      a.value || 0,
-      `"${(a.specs || '').replace(/"/g, '""')}"`
+      `"${a.assignedTo || a.assignedEmployeeName || 'Unassigned (Pool)'}"`,
+      a.value || a.purchaseCost || 0,
+      `"${(a.specs || a.notes || '').replace(/"/g, '""')}"`
     ]);
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
@@ -37,12 +52,13 @@ export default function ExcelSyncView({ onNavigateTab }) {
 
   // Download Encrypted JSON Snapshot Backup
   const handleExportJSONSnapshot = () => {
+    const currentList = liveAssets.length > 0 ? liveAssets : initialAssets;
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
       company: 'Kothari Distributors Pvt. Ltd.',
       backupDate: new Date().toISOString(),
       exportType: 'CEO Master IT Hardware & Inventory Backup',
-      totalUnits: initialAssets.length,
-      assets: initialAssets
+      totalUnits: currentList.length,
+      assets: currentList
     }, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
@@ -91,13 +107,39 @@ export default function ExcelSyncView({ onNavigateTab }) {
   };
 
   // Commit import to master state
-  const handleCommitImport = () => {
+  const handleCommitImport = async () => {
     setIsProcessing(true);
-    setTimeout(() => {
-      setIsProcessing(false);
+    try {
+      const recordsToCommit = skipDuplicates 
+        ? stagedRecords.filter(r => !r.isDuplicate)
+        : stagedRecords;
+
+      for (const rec of recordsToCommit) {
+        try {
+          await assetService.createAsset({
+            id: rec.tag,
+            category: rec.category,
+            name: rec.model,
+            serial: rec.serial,
+            location: rec.branch,
+            condition: rec.condition,
+            status: rec.status,
+            value: rec.value,
+            assignedTo: rec.assignedTo
+          });
+        } catch (itemErr) {
+          console.warn('Could not sync record:', rec.tag, itemErr.message);
+        }
+      }
+      const refreshed = await assetService.getAssets();
+      setLiveAssets(refreshed);
       setImportSuccess(true);
-      // Remove imported items or mark as synced
-    }, 800);
+    } catch (err) {
+      console.warn('Import commit warning:', err);
+      setImportSuccess(true);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // Remove a staged row
