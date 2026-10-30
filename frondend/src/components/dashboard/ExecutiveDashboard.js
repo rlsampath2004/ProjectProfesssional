@@ -5,20 +5,25 @@ import TodayScheduleCalendar from './TodayScheduleCalendar';
 import OpenTasksBoard from './OpenTasksBoard';
 import QuickNavCards from './QuickNavCards';
 import FleetSnapshot from './FleetSnapshot';
-import dashboardService, { initialTasksList } from '../../services/dashboardService';
+import dashboardService from '../../services/dashboardService';
 
-export default function ExecutiveDashboard({ onNavigateTab, onQuickLock }) {
-  // Tasks state (reactive - checking a task dynamically recalculates the completion %!)
-  const [tasks, setTasks] = useState(initialTasksList);
-  const [overview, setOverview] = useState(null);
+export default function ExecutiveDashboard({ onNavigateTab, onQuickLock, overview: initialOverview, hoursLogged }) {
+  // Live reactive tasks from backend database
+  const [tasks, setTasks] = useState([]);
+  const [overview, setOverview] = useState(initialOverview || null);
+  const [loadingTasks, setLoadingTasks] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
     dashboardService.getTasks().then(data => {
-      if (isMounted && data && data.length > 0) {
-        setTasks(data);
+      if (isMounted) {
+        setTasks(data || []);
+        setLoadingTasks(false);
       }
+    }).catch(() => {
+      if (isMounted) setLoadingTasks(false);
     });
+
     dashboardService.getOverview().then(data => {
       if (isMounted && data) {
         setOverview(data);
@@ -26,6 +31,12 @@ export default function ExecutiveDashboard({ onNavigateTab, onQuickLock }) {
     });
     return () => { isMounted = false; };
   }, []);
+
+  useEffect(() => {
+    if (initialOverview) {
+      setOverview(initialOverview);
+    }
+  }, [initialOverview]);
 
   const toggleTask = async (id) => {
     setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
@@ -44,6 +55,12 @@ export default function ExecutiveDashboard({ onNavigateTab, onQuickLock }) {
 
   const completedCount = tasks.filter(t => t.completed).length;
   const totalCount = tasks.length;
+  const weeklyTargetPercent = totalCount > 0 
+    ? Math.min(100, Math.round((completedCount / totalCount) * 100) + 10) 
+    : (overview ? 100 : 0);
+  const pendingAlertsCount = overview?.totalDiscrepanciesCount !== undefined 
+    ? overview.totalDiscrepanciesCount 
+    : tasks.filter(t => !t.completed && t.priority === 'CRITICAL').length;
 
   return (
     <div>
@@ -95,11 +112,11 @@ export default function ExecutiveDashboard({ onNavigateTab, onQuickLock }) {
 
       {/* Row 1: KPI Tiles */}
       <ExecutiveStats 
-        hoursLogged="06h 45m"
+        hoursLogged={hoursLogged}
         completedTasks={completedCount}
         totalTasks={totalCount}
-        weeklyTargetPercent={overview ? Math.min(100, Math.round((completedCount / (totalCount || 1)) * 100) + 15) : 94}
-        pendingAlertsCount={overview ? overview.totalDiscrepanciesCount : (tasks.filter(t => !t.completed && t.priority === 'CRITICAL').length || 1)}
+        weeklyTargetPercent={weeklyTargetPercent}
+        pendingAlertsCount={pendingAlertsCount}
         onNavigateTab={onNavigateTab}
       />
 
@@ -119,6 +136,7 @@ export default function ExecutiveDashboard({ onNavigateTab, onQuickLock }) {
           <TodayScheduleCalendar />
           <OpenTasksBoard 
             tasks={tasks}
+            loading={loadingTasks}
             onToggleTask={toggleTask}
             onAddTask={addTask}
             onDeleteTask={deleteTask}

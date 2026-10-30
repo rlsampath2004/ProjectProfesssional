@@ -14,8 +14,15 @@ export default function AuditVerificationView({ onNavigateTab }) {
   const [selectedBranch, setSelectedBranch] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Verified items state (tracking verified asset IDs)
-  const [verifiedAssetIds, setVerifiedAssetIds] = useState(new Set());
+  // Verified items state (tracking verified asset IDs with persistent storage)
+  const [verifiedAssetIds, setVerifiedAssetIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem('kd_verified_assets');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
 
   // Load live data from backend API with fallback
   useEffect(() => {
@@ -29,8 +36,6 @@ export default function AuditVerificationView({ onNavigateTab }) {
         setSessions(sessData);
         setDiscrepancies(discData);
         setAssets(assetData);
-        // Pre-populate verified IDs from current inventory
-        setVerifiedAssetIds(new Set(assetData.slice(0, 5).map(a => a.id)));
         setLoading(false);
       }
     });
@@ -52,6 +57,11 @@ export default function AuditVerificationView({ onNavigateTab }) {
       updated.add(assetId);
     }
     setVerifiedAssetIds(updated);
+    try {
+      localStorage.setItem('kd_verified_assets', JSON.stringify(Array.from(updated)));
+    } catch (e) {
+      console.warn('Storage save notice:', e);
+    }
   };
 
   // Resolve discrepancy
@@ -212,7 +222,9 @@ export default function AuditVerificationView({ onNavigateTab }) {
           <div className="kd-metric-tile kd-hover-blue">
             <div className="kd-metric-label mb-1">AUDIT SESSIONS</div>
             <div className="kd-metric-value kd-mono text-info fs-4">{sessions.length}</div>
-            <span className="kd-mono text-secondary" style={{ fontSize: '0.68rem' }}>ACROSS 3 COMPANY BRANCHES</span>
+            <span className="kd-mono text-secondary" style={{ fontSize: '0.68rem' }}>
+              ACROSS {new Set([...sessions.map(s => s.branch), ...assets.map(a => a.location)].filter(Boolean)).size || 1} COMPANY BRANCHES
+            </span>
           </div>
         </div>
 
@@ -229,8 +241,12 @@ export default function AuditVerificationView({ onNavigateTab }) {
         <div className="col-6 col-lg-3">
           <div className="kd-metric-tile kd-hover-amber">
             <div className="kd-metric-label mb-1">CEO SIGN-OFF STATUS</div>
-            <div className="kd-metric-value kd-mono text-white fs-4">ACTIVE</div>
-            <span className="kd-mono text-secondary" style={{ fontSize: '0.68rem' }}>Q4 AUDIT CYCLE CURRENT</span>
+            <div className="kd-metric-value kd-mono text-white fs-4">
+              {sessions.some(s => s.status === 'Certified') ? 'CERTIFIED' : 'ACTIVE'}
+            </div>
+            <span className="kd-mono text-secondary" style={{ fontSize: '0.68rem' }}>
+              Q{Math.floor(new Date().getMonth() / 3) + 1} AUDIT CYCLE CURRENT
+            </span>
           </div>
         </div>
       </div>

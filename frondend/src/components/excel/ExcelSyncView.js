@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { sampleExcelFiles, syncHistoryLogs } from './ExcelData';
-import { initialAssets } from '../assets/AssetData';
 import assetService from '../../services/assetService';
 
 export default function ExcelSyncView({ onNavigateTab }) {
@@ -9,12 +8,12 @@ export default function ExcelSyncView({ onNavigateTab }) {
   const [importSuccess, setImportSuccess] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [skipDuplicates, setSkipDuplicates] = useState(true);
-  const [liveAssets, setLiveAssets] = useState(initialAssets);
+  const [liveAssets, setLiveAssets] = useState([]);
 
   useEffect(() => {
     let isMounted = true;
     assetService.getAssets().then(data => {
-      if (isMounted && data && data.length > 0) {
+      if (isMounted && data) {
         setLiveAssets(data);
       }
     }).catch(err => {
@@ -26,7 +25,7 @@ export default function ExcelSyncView({ onNavigateTab }) {
   // Dynamic CSV Export for Excel (Uses Live Inventory)
   const handleExportToExcel = () => {
     const headers = ['Asset Tag', 'Category', 'Equipment Model', 'Serial Number', 'Branch Location', 'Condition', 'Status', 'Assigned To', 'Value (INR)', 'Specs'];
-    const currentList = liveAssets.length > 0 ? liveAssets : initialAssets;
+    const currentList = liveAssets;
     const rows = currentList.map(a => [
       `"${a.id || a.assetTag}"`,
       `"${a.category}"`,
@@ -52,7 +51,7 @@ export default function ExcelSyncView({ onNavigateTab }) {
 
   // Download Encrypted JSON Snapshot Backup
   const handleExportJSONSnapshot = () => {
-    const currentList = liveAssets.length > 0 ? liveAssets : initialAssets;
+    const currentList = liveAssets;
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
       company: 'Kothari Distributors Pvt. Ltd.',
       backupDate: new Date().toISOString(),

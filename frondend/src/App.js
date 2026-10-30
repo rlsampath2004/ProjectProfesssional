@@ -22,6 +22,28 @@ function App() {
     return localStorage.getItem('kd_theme') || 'dark';
   });
 
+  // Calculate live hours logged since business start (09:15 AM)
+  const calculateHoursLogged = () => {
+    const now = new Date();
+    const start = new Date(now);
+    start.setHours(9, 15, 0, 0);
+    let diffMinutes = Math.floor((now - start) / (1000 * 60));
+    if (diffMinutes < 0) diffMinutes = 30;
+    if (diffMinutes > 8 * 60) diffMinutes = 8 * 60;
+    const h = Math.floor(diffMinutes / 60);
+    const m = diffMinutes % 60;
+    return `${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m`;
+  };
+
+  const [hoursLogged, setHoursLogged] = useState(calculateHoursLogged);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHoursLogged(calculateHoursLogged());
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Seamless Backend Authentication Handshake & Live Overview Bootstrap
   useEffect(() => {
     let isMounted = true;
@@ -102,6 +124,7 @@ function App() {
             onNavigateTab={(tab) => setActiveTab(tab)} 
             onQuickLock={() => setIsLocked(true)}
             overview={overview}
+            hoursLogged={hoursLogged}
           />
         );
 
@@ -155,6 +178,8 @@ function App() {
           <ExecutiveDashboard 
             onNavigateTab={(tab) => setActiveTab(tab)} 
             onQuickLock={() => setIsLocked(true)}
+            overview={overview}
+            hoursLogged={hoursLogged}
           />
         );
     }
@@ -175,7 +200,7 @@ function App() {
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
         onQuickLock={() => setIsLocked(true)}
-        hoursLogged="06h 45m"
+        hoursLogged={hoursLogged}
         theme={theme}
         onToggleTheme={toggleTheme}
       />

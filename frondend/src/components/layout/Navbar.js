@@ -6,7 +6,7 @@ export default function Navbar({
   mobileOpen, 
   setMobileOpen,
   onQuickLock,
-  hoursLogged = "06h 45m",
+  hoursLogged,
   theme = "dark",
   onToggleTheme
 }) {

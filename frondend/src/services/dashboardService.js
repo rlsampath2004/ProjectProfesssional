@@ -1,48 +1,5 @@
 import api from './api';
 
-export const initialTasksList = [
-  {
-    id: '1',
-    title: 'Sign off quarterly IT physical stocktake for Branch B',
-    priority: 'CRITICAL',
-    category: 'IT ASSETS',
-    due: 'TODAY 17:00',
-    completed: false
-  },
-  {
-    id: '2',
-    title: 'Verify OLX payment received for 2 sold Lenovo ThinkPads',
-    priority: 'HIGH',
-    category: 'OLX SALES',
-    due: 'TODAY 18:30',
-    completed: false
-  },
-  {
-    id: '3',
-    title: 'Approve allocation of Dell 24" Monitors to Billing Desk',
-    priority: 'NORMAL',
-    category: 'IT ASSETS',
-    due: 'TODAY 19:00',
-    completed: true
-  },
-  {
-    id: '4',
-    title: 'Review weekly hours report and overtime entries',
-    priority: 'NORMAL',
-    category: 'OPERATIONS',
-    due: 'TOMORROW 10:00',
-    completed: true
-  },
-  {
-    id: '5',
-    title: 'Import latest vendor hardware invoices via Excel',
-    priority: 'HIGH',
-    category: 'OPERATIONS',
-    due: 'TOMORROW 14:00',
-    completed: true
-  }
-];
-
 export const dashboardService = {
   async getOverview() {
     try {
@@ -71,8 +28,8 @@ export const dashboardService = {
       }
       return [];
     } catch (err) {
-      console.warn('[DashboardService] Backend unavailable, using cached tasks:', err.message);
-      return initialTasksList;
+      console.warn('[DashboardService] Backend unavailable:', err.message);
+      return [];
     }
   },
 

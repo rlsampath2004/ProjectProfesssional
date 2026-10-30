@@ -33,8 +33,8 @@ export default function FleetSnapshot({ onNavigateTab }) {
             'Printers (A4/Label)': assets.filter(a => a.category && a.category.includes('Printer')).length,
             'Switches & Firewalls': assets.filter(a => a.category && (a.category.includes('Switch') || a.category.includes('Server'))).length,
             'SIM Cards & Dongles': assets.filter(a => a.category && a.category.includes('SIM')).length,
-            'Power Chargers': Math.round(assets.length * 0.9),
-            'Keyboards & Mice': Math.round(assets.length * 1.1),
+            'Power Chargers': assets.filter(a => a.category && (a.category.toLowerCase().includes('charger') || a.category.toLowerCase().includes('adapter') || a.category.toLowerCase().includes('power'))).length,
+            'Keyboards & Mice': assets.filter(a => a.category && (a.category.toLowerCase().includes('keyboard') || a.category.toLowerCase().includes('mouse') || a.category.toLowerCase().includes('peripheral'))).length,
           };
 
           setCategories([

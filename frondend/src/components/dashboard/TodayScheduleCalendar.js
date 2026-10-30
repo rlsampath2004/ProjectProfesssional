@@ -9,62 +9,68 @@ export default function TodayScheduleCalendar() {
   const [selectedDate, setSelectedDate] = useState(todayDateNum);
   
   // Schedule items organized by date (defaults for today and tomorrow)
-  const [scheduleData, setScheduleData] = useState(() => ({
-    [todayDateNum]: [
-      {
-        id: 1,
-        time: '09:30',
-        title: 'IT Hardware Stocktake & SIM Inventory Audit',
-        category: 'AUDIT',
-        done: true
-      },
-      {
-        id: 2,
-        time: '11:15',
-        title: 'Warehouse A4 & Thermal Label Printers Firmware Review',
-        category: 'HARDWARE',
-        done: true
-      },
-      {
-        id: 3,
-        time: '14:30',
-        title: 'Authorise Laptop Allocations for New Engineers',
-        category: 'ALLOCATION',
-        done: false,
-        current: true
-      },
-      {
-        id: 4,
-        time: '16:00',
-        title: 'OLX Buyer Negotiation & Price Closing (Decommissioned Units)',
-        category: 'OLX SALES',
-        done: false
-      },
-      {
-        id: 5,
-        time: '17:45',
-        title: 'Daily Hours & Operational Wrap-Up with Branch Leads',
-        category: 'EXECUTIVE',
-        done: false
-      }
-    ],
-    [todayDateNum + 1]: [
-      {
-        id: 6,
-        time: '10:00',
-        title: 'Weekly Management Hours Review & Payroll Verification',
-        category: 'EXECUTIVE',
-        done: false
-      },
-      {
-        id: 7,
-        time: '14:00',
-        title: 'Vendor Bulk Invoice Import & Excel Reconciliation',
-        category: 'OPERATIONS',
-        done: false
-      }
-    ]
-  }));
+  const [scheduleData, setScheduleData] = useState(() => {
+    try {
+      const saved = localStorage.getItem('kd_schedule_data');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      [todayDateNum]: [
+        {
+          id: 1,
+          time: '09:30',
+          title: 'IT Hardware Stocktake & SIM Inventory Audit',
+          category: 'AUDIT',
+          done: true
+        },
+        {
+          id: 2,
+          time: '11:15',
+          title: 'Warehouse A4 & Thermal Label Printers Firmware Review',
+          category: 'HARDWARE',
+          done: true
+        },
+        {
+          id: 3,
+          time: '14:30',
+          title: 'Authorise Laptop Allocations for New Engineers',
+          category: 'ALLOCATION',
+          done: false,
+          current: true
+        },
+        {
+          id: 4,
+          time: '16:00',
+          title: 'OLX Buyer Negotiation & Price Closing (Decommissioned Units)',
+          category: 'OLX SALES',
+          done: false
+        },
+        {
+          id: 5,
+          time: '17:45',
+          title: 'Daily Hours & Operational Wrap-Up with Branch Leads',
+          category: 'EXECUTIVE',
+          done: false
+        }
+      ],
+      [todayDateNum + 1]: [
+        {
+          id: 6,
+          time: '10:00',
+          title: 'Weekly Management Hours Review & Payroll Verification',
+          category: 'EXECUTIVE',
+          done: false
+        },
+        {
+          id: 7,
+          time: '14:00',
+          title: 'Vendor Bulk Invoice Import & Excel Reconciliation',
+          category: 'OPERATIONS',
+          done: false
+        }
+      ]
+    };
+  });
 
   const [newEventTitle, setNewEventTitle] = useState('');
   const [newEventTime, setNewEventTime] = useState('18:30');
@@ -78,7 +84,9 @@ export default function TodayScheduleCalendar() {
     const updated = currentItems.map(item => 
       item.id === id ? { ...item, done: !item.done, current: false } : item
     );
-    setScheduleData({ ...scheduleData, [selectedDate]: updated });
+    const nextState = { ...scheduleData, [selectedDate]: updated };
+    setScheduleData(nextState);
+    try { localStorage.setItem('kd_schedule_data', JSON.stringify(nextState)); } catch (e) {}
   };
 
   const handleAddEvent = (e) => {
@@ -92,7 +100,9 @@ export default function TodayScheduleCalendar() {
       done: false
     };
     const updated = [...currentItems, newEntry];
-    setScheduleData({ ...scheduleData, [selectedDate]: updated });
+    const nextState = { ...scheduleData, [selectedDate]: updated };
+    setScheduleData(nextState);
+    try { localStorage.setItem('kd_schedule_data', JSON.stringify(nextState)); } catch (e) {}
     setNewEventTitle('');
     setShowAddForm(false);
   };

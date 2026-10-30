@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function OpenTasksBoard({ tasks, onToggleTask, onAddTask, onDeleteTask }) {
+export default function OpenTasksBoard({ tasks = [], loading = false, onToggleTask, onAddTask, onDeleteTask }) {
   const [activeFilter, setActiveFilter] = useState('all');
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskPriority, setNewTaskPriority] = useState('HIGH');
@@ -18,12 +18,13 @@ export default function OpenTasksBoard({ tasks, onToggleTask, onAddTask, onDelet
   const handleCreate = (e) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
+    const dueTime = new Date(Date.now() + 2 * 3600 * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
     onAddTask({
       id: Date.now(),
       title: newTaskTitle,
       priority: newTaskPriority,
       category: newTaskCategory,
-      due: 'TODAY 18:00',
+      due: `TODAY ${dueTime}`,
       completed: false
     });
     setNewTaskTitle('');
@@ -117,7 +118,12 @@ export default function OpenTasksBoard({ tasks, onToggleTask, onAddTask, onDelet
 
         {/* Task List */}
         <div style={{ maxHeight: '350px', overflowY: 'auto' }}>
-          {filteredTasks.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-4 text-secondary kd-mono small">
+              <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+              SYNCING TASKS FROM BACKEND...
+            </div>
+          ) : filteredTasks.length === 0 ? (
             <div className="text-center py-4 text-secondary kd-mono small">
               NO ACTION ITEMS FOUND FOR THIS FILTER
             </div>

@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { weeklySalesTrend } from './OlxData';
+import React, { useState, useEffect, useMemo } from 'react';
 import OlxListingModal from './OlxListingModal';
 import MarkSoldModal from './MarkSoldModal';
 import olxService from '../../services/olxService';
@@ -48,13 +47,46 @@ export default function OlxSalesView({ onNavigateTab }) {
   const activeNegotiatingSum = listings
     .filter(item => item.status === 'Active' || item.status === 'Negotiating')
     .reduce((acc, curr) => acc + (curr.expectedPrice || curr.askingPrice || 0), 0);
-  const expectedSalesToday = activeNegotiatingSum > 0 ? activeNegotiatingSum : (revenueSoldToday > 0 ? revenueSoldToday : 24000);
+  const expectedSalesToday = activeNegotiatingSum > 0 ? activeNegotiatingSum : revenueSoldToday;
   
   const totalSalesRealized = listings
     .filter(item => item.status === 'Sold')
     .reduce((acc, curr) => acc + (curr.soldPrice || 0), 0);
 
   const pendingListingsCount = listings.filter(item => item.status === 'Active' || item.status === 'Negotiating').length;
+
+  // 7-day sales velocity and trajectory computed dynamically from live listings
+  const computedWeeklySalesTrend = useMemo(() => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const result = [];
+    const today = new Date();
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const dayName = days[d.getDay()];
+      const formattedDate = `${d.getDate()} ${months[d.getMonth()]}`;
+      const isToday = i === 0;
+
+      const soldOnDay = listings.filter(item => 
+        item.status === 'Sold' && (item.dateSold === dateStr || (isToday && item.soldToday))
+      );
+      const revenue = soldOnDay.reduce((acc, curr) => acc + (curr.soldPrice || 0), 0);
+      const salesCount = soldOnDay.length;
+      const expected = revenue > 0 ? revenue : (isToday ? activeNegotiatingSum : 0);
+
+      result.push({
+        day: isToday ? `${dayName} (Today)` : dayName,
+        date: formattedDate,
+        salesCount,
+        revenue,
+        expected
+      });
+    }
+    return result;
+  }, [listings, activeNegotiatingSum]);
 
   // Filter listings
   const filteredListings = listings.filter(item => {
@@ -377,8 +409,8 @@ export default function OlxSalesView({ onNavigateTab }) {
 
         {/* Trend Bar Chart */}
         <div className="row g-2 align-items-end pt-3" style={{ minHeight: '140px' }}>
-          {weeklySalesTrend.map((day, idx) => {
-            const maxVal = 30000;
+          {computedWeeklySalesTrend.map((day, idx) => {
+            const maxVal = Math.max(...computedWeeklySalesTrend.map(d => d.revenue), 10000);
             const barHeight = Math.max(12, Math.round((day.revenue / maxVal) * 100));
             const isToday = day.day.includes('Today');
 

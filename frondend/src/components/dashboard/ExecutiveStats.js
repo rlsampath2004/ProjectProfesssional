@@ -1,13 +1,16 @@
 import React from 'react';
 
 export default function ExecutiveStats({
-  hoursLogged = "06h 45m",
-  completedTasks = 14,
-  totalTasks = 17,
-  weeklyTargetPercent = 94,
-  pendingAlertsCount = 3,
+  hoursLogged,
+  completedTasks = 0,
+  totalTasks = 0,
+  weeklyTargetPercent = 0,
+  pendingAlertsCount = 0,
   onNavigateTab
 }) {
+  const match = (hoursLogged || '').match(/(\d+)h\s*(\d+)m/);
+  const totalMinutes = match ? (parseInt(match[1], 10) * 60 + parseInt(match[2], 10)) : 0;
+  const hoursPercent = Math.min(100, Math.round((totalMinutes / (8 * 60)) * 100));
   const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   return (
@@ -24,20 +27,20 @@ export default function ExecutiveStats({
           </div>
 
           <div className="d-flex align-items-baseline gap-2 mb-3">
-            <span className="kd-metric-value kd-mono">{hoursLogged}</span>
+            <span className="kd-metric-value kd-mono">{hoursLogged || "00h 00m"}</span>
             <span className="kd-mono small text-secondary">/ 08.0h</span>
           </div>
 
           <div className="kd-bar-track mb-3">
             <div 
               className="kd-bar-fill"
-              style={{ width: '84%', background: 'var(--kd-text-1)' }}
+              style={{ width: `${hoursPercent}%`, background: 'var(--kd-text-1)' }}
             />
           </div>
 
           <div className="d-flex align-items-center justify-content-between kd-mono text-secondary" style={{ fontSize: '0.72rem' }}>
             <span>PUNCH: 09:15 AM</span>
-            <span className="text-white">84% OF TARGET</span>
+            <span className="text-white">{hoursPercent}% OF TARGET</span>
           </div>
         </div>
       </div>
@@ -48,7 +51,7 @@ export default function ExecutiveStats({
           <div className="d-flex align-items-center justify-content-between mb-2">
             <span className="kd-metric-label">TASK COMPLETION</span>
             <span className="kd-tag kd-tag-neutral kd-mono">
-              +12% YESTERDAY
+              {completionPercentage >= 70 ? 'PACING AHEAD' : (totalTasks === 0 ? 'ALL CLEAR' : 'IN CADENCE')}
             </span>
           </div>
 
@@ -66,7 +69,7 @@ export default function ExecutiveStats({
 
           <div className="d-flex align-items-center justify-content-between kd-mono text-secondary" style={{ fontSize: '0.72rem' }}>
             <span>COMPLETED: {completedTasks}</span>
-            <span className="text-white">{totalTasks - completedTasks} PENDING</span>
+            <span className="text-white">{Math.max(0, totalTasks - completedTasks)} PENDING</span>
           </div>
         </div>
       </div>
@@ -76,7 +79,9 @@ export default function ExecutiveStats({
         <div className="kd-metric-tile kd-hover-amber">
           <div className="d-flex align-items-center justify-content-between mb-2">
             <span className="kd-metric-label">WEEKLY TARGET</span>
-            <span className="kd-tag kd-tag-amber">ON TRACK</span>
+            <span className={`kd-tag ${weeklyTargetPercent >= 80 ? 'kd-tag-emerald' : 'kd-tag-amber'}`}>
+              {weeklyTargetPercent >= 80 ? 'ON TRACK' : 'IN REVIEW'}
+            </span>
           </div>
 
           <div className="d-flex align-items-baseline gap-2 mb-3">
@@ -92,8 +97,8 @@ export default function ExecutiveStats({
           </div>
 
           <div className="d-flex align-items-center justify-content-between kd-mono text-secondary" style={{ fontSize: '0.72rem' }}>
-            <span>PHASE 2 AUDIT</span>
-            <span className="text-white">DUE FRI</span>
+            <span>STOCK AUDIT</span>
+            <span className="text-white">{weeklyTargetPercent >= 90 ? 'OPTIMIZED' : 'IN PROGRESS'}</span>
           </div>
         </div>
       </div>
@@ -103,7 +108,9 @@ export default function ExecutiveStats({
         <div className="kd-metric-tile kd-hover-rose" style={{ borderColor: 'rgba(239, 68, 68, 0.35)' }}>
           <div className="d-flex align-items-center justify-content-between mb-2">
             <span className="kd-metric-label text-danger">REQUIRES CEO ACTION</span>
-            <span className="kd-tag kd-tag-rose">URGENT</span>
+            <span className={`kd-tag ${pendingAlertsCount > 0 ? 'kd-tag-rose' : 'kd-tag-emerald'}`}>
+              {pendingAlertsCount > 0 ? 'URGENT' : 'RESOLVED'}
+            </span>
           </div>
 
           <div className="d-flex align-items-baseline gap-2 mb-3">
@@ -114,12 +121,14 @@ export default function ExecutiveStats({
           <div className="kd-bar-track mb-3">
             <div 
               className="kd-bar-fill"
-              style={{ width: '100%', background: '#ef4444' }}
+              style={{ width: `${pendingAlertsCount > 0 ? Math.min(100, pendingAlertsCount * 25) : 0}%`, background: '#ef4444' }}
             />
           </div>
 
           <div className="d-flex align-items-center justify-content-between kd-mono" style={{ fontSize: '0.72rem' }}>
-            <span className="text-secondary text-truncate me-2">UNVERIFIED HARDWARE</span>
+            <span className="text-secondary text-truncate me-2">
+              {pendingAlertsCount > 0 ? 'DISCREPANCIES FLAGGED' : 'INVENTORY AUDITED'}
+            </span>
             <button 
               className="btn btn-link p-0 text-white text-decoration-underline kd-mono fw-semibold"
               style={{ fontSize: '0.72rem' }}

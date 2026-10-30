@@ -6,10 +6,27 @@ export default function WeeklyProgressChart({ tasks = [] }) {
   const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
   const completedCount = tasks.filter(t => t.completed).length;
   const totalCount = tasks.length;
-  const dailyVelocityValue = completedCount > 0 ? (completedCount / 2).toFixed(1) : '7.2';
-  const deltaValue = completedCount >= 5 ? `+${(completedCount - 4).toFixed(1)}` : '+2.5';
-  const efficiencyValue = totalCount > 0 ? (88 + Math.round((completedCount / totalCount) * 11)).toFixed(1) + '%' : '97.4%';
-  const dailyVelocity = [6, 8, 8, completedCount > 0 ? completedCount : 9, 5, 0, 0];
+  const dailyVelocityValue = totalCount > 0 ? (completedCount > 0 ? (completedCount / 2).toFixed(1) : '0.0') : '0.0';
+  const deltaValue = completedCount > 0 ? `+${completedCount}` : '0.0';
+  const efficiencyValue = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) + '%' : '100%';
+
+  const dailyVelocity = [
+    Math.round(completedCount * 0.2),
+    Math.round(completedCount * 0.3),
+    Math.round(completedCount * 0.25),
+    Math.round(completedCount * 0.25),
+    Math.max(0, totalCount - completedCount),
+    0,
+    0
+  ];
+
+  const chartPoints = [
+    { cx: 50, cy: 145, val: '0' },
+    { cx: 140, cy: 125, val: String(Math.round(completedCount * 0.2)) },
+    { cx: 230, cy: 105, val: String(Math.round(completedCount * 0.5)) },
+    { cx: 325, cy: 75, val: String(Math.round(completedCount * 0.8)) },
+    { cx: 420, cy: 45, val: String(completedCount), current: true },
+  ];
 
   return (
     <div className="kd-panel h-100">
@@ -119,13 +136,7 @@ export default function WeeklyProgressChart({ tasks = [] }) {
                 />
 
                 {/* Nodes */}
-                {[
-                  { cx: 50, cy: 145, val: '06' },
-                  { cx: 140, cy: 120, val: '14' },
-                  { cx: 230, cy: 95, val: '22' },
-                  { cx: 325, cy: 65, val: '31' },
-                  { cx: 420, cy: 45, val: '36', current: true },
-                ].map((pt, i) => (
+                {chartPoints.map((pt, i) => (
                   <g key={i}>
                     <circle
                       cx={pt.cx}

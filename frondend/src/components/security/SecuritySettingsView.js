@@ -4,7 +4,15 @@ import securityService from '../../services/securityService';
 import authService from '../../services/authService';
 
 export default function SecuritySettingsView({ onNavigateTab, onTriggerLock, theme = 'dark', onToggleTheme }) {
-  const [profile, setProfile] = useState(initialCeoProfile);
+  const [profile, setProfile] = useState(() => {
+    const savedPin = localStorage.getItem('kd_master_pin');
+    const savedTimeout = localStorage.getItem('kd_inactivity_timeout');
+    return {
+      ...initialCeoProfile,
+      masterPin: savedPin || initialCeoProfile.masterPin,
+      inactivityTimeoutMinutes: savedTimeout ? Number(savedTimeout) : (initialCeoProfile.inactivityTimeoutMinutes || 10)
+    };
+  });
   const [sessions, setSessions] = useState(initialSessions);
   const [logs, setLogs] = useState([]);
   const [logsLoading, setLogsLoading] = useState(true);
@@ -41,7 +49,8 @@ export default function SecuritySettingsView({ onNavigateTab, onTriggerLock, the
 
   // Update Inactivity Timeout
   const handleUpdateTimeout = (minutes) => {
-    setProfile({ ...profile, inactivityTimeoutMinutes: minutes });
+    setProfile(prev => ({ ...prev, inactivityTimeoutMinutes: minutes }));
+    localStorage.setItem('kd_inactivity_timeout', String(minutes));
   };
 
   // Terminate a remote session
