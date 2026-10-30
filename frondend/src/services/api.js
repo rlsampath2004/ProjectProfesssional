@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Base API configuration with proxy support for development and environment override for production
-const API_BASE_URL = process.env.REACT_APP_API_URL || '';
+// Base API configuration with local backend fallback for development and environment override for production
+const API_BASE_URL = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:8080' : '');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
