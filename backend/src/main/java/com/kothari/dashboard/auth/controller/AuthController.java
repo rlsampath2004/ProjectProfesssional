@@ -8,14 +8,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.util.Pair;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -24,6 +23,10 @@ public class AuthController {
 
     private final AuthService authService;
     private static final String REFRESH_COOKIE_NAME = "kd_refresh_token";
+
+    /** Driven by app.security.cookie.secure in application.yml (false in dev, true in prod over HTTPS) */
+    @Value("${app.security.cookie.secure:false}")
+    private boolean cookieSecure;
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(
@@ -125,7 +128,7 @@ public class AuthController {
     private void setRefreshCookie(HttpServletResponse response, String refreshToken) {
         ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE_NAME, refreshToken)
                 .httpOnly(true)
-                .secure(false) // Set to true in production over HTTPS
+                .secure(cookieSecure)
                 .sameSite("Strict")
                 .path("/api/auth")
                 .maxAge(7 * 24 * 60 * 60)
@@ -136,7 +139,7 @@ public class AuthController {
     private void clearRefreshCookie(HttpServletResponse response) {
         ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE_NAME, "")
                 .httpOnly(true)
-                .secure(false)
+                .secure(cookieSecure)
                 .sameSite("Strict")
                 .path("/api/auth")
                 .maxAge(0)

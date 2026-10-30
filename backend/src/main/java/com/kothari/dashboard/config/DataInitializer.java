@@ -78,8 +78,8 @@ public class DataInitializer implements CommandLineRunner {
             log.info("=================================================================");
             log.info("INITIAL ADMIN ACCOUNT SEEDED SUCCESSFULLY");
             log.info("Username: admin");
-            log.info("Default Password: {}", defaultPassword);
-            log.info("MFA Secret: {}", key.getKey());
+            log.info("Default Password: [REDACTED — check your deployment configuration or contact the system administrator]");
+            log.info("MFA Secret: [REDACTED — stored securely in the database]");
             log.info("Setup URL: {}", mfaService.getOtpAuthUrl("admin", key.getKey()));
             log.info("Please log in and configure your Google Authenticator 2FA immediately.");
             log.info("=================================================================");

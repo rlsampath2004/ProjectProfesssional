@@ -87,32 +87,47 @@ function App() {
   // Inactivity auto-lock safety (vital for the 6 people sharing the laptop!)
   useEffect(() => {
     let timeoutId;
-    const resetTimer = () => {
-      clearTimeout(timeoutId);
-      // Auto-lock after 15 minutes of inactivity (or customizable)
-      timeoutId = setTimeout(() => {
-        setIsLocked(true);
-      }, 15 * 60 * 1000);
+    // Read timeout from Security Settings (default 10 minutes if not set)
+    const getInactivityMs = () => {
+      const stored = localStorage.getItem('kd_inactivity_timeout');
+      const minutes = stored ? parseInt(stored, 10) : 10;
+      return (isNaN(minutes) || minutes < 1 ? 10 : minutes) * 60 * 1000;
     };
 
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-    events.forEach(event => window.addEventListener(event, resetTimer));
-    resetTimer();
-
-    // Tab-switch panic mode: instantly blackouts screen if browser is minimized or tab switched
-    const handleVisibilityChange = () => {
-      const tabLockSetting = localStorage.getItem('kd_tab_switch_lock');
-      const isEnabled = tabLockSetting === null ? true : tabLockSetting === 'true';
-      if (document.hidden && isEnabled) {
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
         setIsLocked(true);
+      }, getInactivityMs());
+    };
+
+    // Only listen to meaningful interaction events — not mousemove (too frequent, causes CPU churn)
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    events.forEach(event => window.addEventListener(event, resetTimer, { passive: true }));
+    resetTimer(); // Start the initial timer
+
+    // Tab-switch panic mode: instantly blackouts screen if user switches away
+    // Only activates if user has explicitly opted in (kd_tab_switch_lock = 'true')
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        const tabLockSetting = localStorage.getItem('kd_tab_switch_lock');
+        const isEnabled = tabLockSetting === 'true'; // Default OFF — don't lock on every tab navigation
+        if (isEnabled) {
+          setIsLocked(true);
+        }
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Listen for session expired events from the API interceptor
+    const handleSessionExpired = () => setIsLocked(true);
+    window.addEventListener('kd_session_expired', handleSessionExpired);
 
     return () => {
       clearTimeout(timeoutId);
       events.forEach(event => window.removeEventListener(event, resetTimer));
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('kd_session_expired', handleSessionExpired);
     };
   }, []);
 

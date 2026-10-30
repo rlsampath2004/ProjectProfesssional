@@ -111,3 +111,9 @@ api.interceptors.response.use(
 
 export default api;
 
+// Clear the access token from sessionStorage on tab/window close to reduce XSS exposure window.
+// The HttpOnly refresh cookie persists and can silently re-issue a new access token on next open.
+window.addEventListener('beforeunload', () => {
+  sessionStorage.removeItem('kd_access_token');
+});
+

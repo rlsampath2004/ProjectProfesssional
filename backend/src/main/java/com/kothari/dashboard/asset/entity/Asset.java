@@ -21,6 +21,9 @@ import java.util.UUID;
         @Index(name = "idx_asset_owner_status", columnList = "owner_id, status"),
         @Index(name = "idx_asset_owner_serial", columnList = "owner_id, serial_number"),
         @Index(name = "idx_asset_owner_tag", columnList = "owner_id, asset_tag")
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uq_asset_tag_owner", columnNames = {"owner_id", "asset_tag"})
     }
 )
 @SQLRestriction("is_deleted = false")

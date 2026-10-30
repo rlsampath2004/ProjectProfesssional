@@ -26,14 +26,16 @@ export const authService = {
       // Refresh cookie not present or expired
     }
 
-    // 2. Seamlessly authenticate CEO owner account to connect to backend
-    try {
-      const loginData = await this.login('admin', 'KothariAdmin@2026!');
-      if (loginData?.accessToken) {
-        return loginData.accessToken;
+    // 2. Dev-only seamless auto-connect — removed in production builds
+    if (process.env.NODE_ENV === 'development') {
+      try {
+        const loginData = await this.login('admin', 'KothariAdmin@2026!');
+        if (loginData?.accessToken) {
+          return loginData.accessToken;
+        }
+      } catch (e) {
+        console.warn('[AuthService] Dev auto-connect failed:', e.message);
       }
-    } catch (e) {
-      console.warn('[AuthService] Auto-connect fallback notification:', e.message);
     }
     return null;
   },

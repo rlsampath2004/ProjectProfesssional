@@ -5,12 +5,15 @@ import authService from '../../services/authService';
 
 export default function SecuritySettingsView({ onNavigateTab, onTriggerLock, theme = 'dark', onToggleTheme }) {
   const [profile, setProfile] = useState(() => {
+    // Load persisted CEO security preferences from localStorage
     const savedPin = localStorage.getItem('kd_master_pin');
     const savedTimeout = localStorage.getItem('kd_inactivity_timeout');
+    const savedTabLock = localStorage.getItem('kd_tab_switch_lock');
     return {
       ...initialCeoProfile,
       masterPin: savedPin || initialCeoProfile.masterPin,
-      inactivityTimeoutMinutes: savedTimeout ? Number(savedTimeout) : (initialCeoProfile.inactivityTimeoutMinutes || 10)
+      inactivityTimeoutMinutes: savedTimeout ? Number(savedTimeout) : (initialCeoProfile.inactivityTimeoutMinutes || 10),
+      autoLockOnTabSwitch: savedTabLock !== null ? savedTabLock === 'true' : initialCeoProfile.autoLockOnTabSwitch
     };
   });
   const [sessions, setSessions] = useState(initialSessions);
@@ -47,10 +50,17 @@ export default function SecuritySettingsView({ onNavigateTab, onTriggerLock, the
     setTimeout(() => setPinSavedToast(false), 3000);
   };
 
-  // Update Inactivity Timeout
+  // Update Inactivity Timeout — persists globally and immediately applies
   const handleUpdateTimeout = (minutes) => {
-    setProfile(prev => ({ ...prev, inactivityTimeoutMinutes: minutes }));
-    localStorage.setItem('kd_inactivity_timeout', String(minutes));
+    const val = Number(minutes);
+    setProfile(prev => ({ ...prev, inactivityTimeoutMinutes: val }));
+    localStorage.setItem('kd_inactivity_timeout', String(val));
+  };
+
+  // Toggle Tab Switch Lock — persists and is read by App.js on next event
+  const handleToggleTabSwitchLock = (enabled) => {
+    setProfile(prev => ({ ...prev, autoLockOnTabSwitch: enabled }));
+    localStorage.setItem('kd_tab_switch_lock', String(enabled));
   };
 
   // Terminate a remote session
@@ -239,11 +249,7 @@ export default function SecuritySettingsView({ onNavigateTab, onTriggerLock, the
                 type="checkbox" 
                 id="tabSwitchLock" 
                 checked={profile.autoLockOnTabSwitch}
-                onChange={(e) => {
-                  const val = e.target.checked;
-                  setProfile({ ...profile, autoLockOnTabSwitch: val });
-                  localStorage.setItem('kd_tab_switch_lock', val);
-                }}
+                onChange={(e) => handleToggleTabSwitchLock(e.target.checked)}
               />
               <label className="form-check-label small fw-bold" style={{ color: 'var(--kd-text-1)' }} htmlFor="tabSwitchLock">
                 Lock Screen on Tab Switch (Panic Mode)
