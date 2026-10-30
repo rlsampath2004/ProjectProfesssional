@@ -40,12 +40,13 @@ public interface AssetRepository extends JpaRepository<Asset, UUID>, JpaSpecific
 
     List<Asset> findByOwnerId(UUID ownerId);
 
-    @Query("SELECT a FROM Asset a WHERE a.ownerId = :ownerId AND " +
+    @Query("SELECT a FROM Asset a LEFT JOIN a.assignedEmployee e WHERE a.ownerId = :ownerId AND " +
            "(LOWER(a.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(a.assetTag) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(a.serialNumber) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(a.brand) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           "LOWER(a.assignedEmployeeName) LIKE LOWER(CONCAT('%', :query, '%')))")
+           "LOWER(e.fullName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(e.employeeCode) LIKE LOWER(CONCAT('%', :query, '%')))")
     Page<Asset> searchAssets(@Param("ownerId") UUID ownerId, @Param("query") String query, Pageable pageable);
 }
 
