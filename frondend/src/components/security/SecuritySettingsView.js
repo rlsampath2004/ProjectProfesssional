@@ -13,7 +13,7 @@ export default function SecuritySettingsView({ onNavigateTab, onTriggerLock, the
       ...initialCeoProfile,
       masterPin: savedPin || initialCeoProfile.masterPin,
       inactivityTimeoutMinutes: savedTimeout ? Number(savedTimeout) : (initialCeoProfile.inactivityTimeoutMinutes || 10),
-      autoLockOnTabSwitch: savedTabLock !== null ? savedTabLock === 'true' : initialCeoProfile.autoLockOnTabSwitch
+      autoLockOnTabSwitch: savedTabLock !== null ? savedTabLock === 'true' : true
     };
   });
   const [sessions, setSessions] = useState(initialSessions);

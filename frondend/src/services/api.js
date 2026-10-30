@@ -27,10 +27,29 @@ export const getAccessToken = () => {
   return inMemoryToken;
 };
 
+// Function provider allowing api to lazily request an access token before first dispatch
+let tokenProvider = null;
+export const setTokenProvider = (fn) => {
+  tokenProvider = fn;
+};
+
 // Request Interceptor: injects Bearer token into Authorization header
 api.interceptors.request.use(
-  (config) => {
-    const token = getAccessToken();
+  async (config) => {
+    // Avoid recursion on auth endpoints
+    if (config.url?.includes('/api/auth/')) {
+      return config;
+    }
+
+    let token = getAccessToken();
+    if (!token && tokenProvider) {
+      try {
+        token = await tokenProvider();
+      } catch (e) {
+        // Continue if provider throws
+      }
+    }
+
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }

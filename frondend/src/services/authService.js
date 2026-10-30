@@ -1,4 +1,6 @@
-import api, { setAccessToken, getAccessToken } from './api';
+import api, { setAccessToken, getAccessToken, setTokenProvider } from './api';
+
+let ongoingAuthPromise = null;
 
 export const authService = {
   // 1. Password Step
@@ -16,28 +18,40 @@ export const authService = {
     if (this.isAuthenticated()) {
       return getAccessToken();
     }
-    // 1. Try refresh endpoint first (uses existing HttpOnly cookie)
-    try {
-      const refreshed = await this.refresh();
-      if (refreshed?.accessToken) {
-        return refreshed.accessToken;
-      }
-    } catch (e) {
-      // Refresh cookie not present or expired
+    if (ongoingAuthPromise) {
+      return ongoingAuthPromise;
     }
 
-    // 2. Dev-only seamless auto-connect — removed in production builds
-    if (process.env.NODE_ENV === 'development') {
+    ongoingAuthPromise = (async () => {
       try {
-        const loginData = await this.login('admin', 'KothariAdmin@2026!');
-        if (loginData?.accessToken) {
-          return loginData.accessToken;
+        // 1. Try refresh endpoint first (uses existing HttpOnly cookie)
+        try {
+          const refreshed = await this.refresh();
+          if (refreshed?.accessToken) {
+            return refreshed.accessToken;
+          }
+        } catch (e) {
+          // Refresh cookie not present or expired
         }
-      } catch (e) {
-        console.warn('[AuthService] Dev auto-connect failed:', e.message);
+
+        // 2. Dev-only seamless auto-connect — removed in production builds
+        if (process.env.NODE_ENV === 'development') {
+          try {
+            const loginData = await this.login('admin', 'KothariAdmin@2026!');
+            if (loginData?.accessToken) {
+              return loginData.accessToken;
+            }
+          } catch (e) {
+            console.warn('[AuthService] Dev auto-connect failed:', e.message);
+          }
+        }
+        return null;
+      } finally {
+        ongoingAuthPromise = null;
       }
-    }
-    return null;
+    })();
+
+    return ongoingAuthPromise;
   },
 
   // 2. TOTP MFA Step
@@ -108,6 +122,9 @@ export const authService = {
     return !!getAccessToken();
   },
 };
+
+// Register token provider with api.js so requests never fire unauthenticated
+setTokenProvider(() => authService.ensureAuthenticated());
 
 export default authService;
 

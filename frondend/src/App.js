@@ -16,11 +16,23 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isLocked, setIsLocked] = useState(false);
+  const [isLocked, setIsLocked] = useState(() => {
+    return localStorage.getItem('kd_is_locked') === 'true';
+  });
   const [overview, setOverview] = useState(null);
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('kd_theme') || 'dark';
   });
+
+  const handleLock = () => {
+    setIsLocked(true);
+    localStorage.setItem('kd_is_locked', 'true');
+  };
+
+  const handleUnlock = () => {
+    setIsLocked(false);
+    localStorage.removeItem('kd_is_locked');
+  };
 
   // Calculate live hours logged since business start (09:15 AM)
   const calculateHoursLogged = () => {
@@ -97,7 +109,7 @@ function App() {
     const resetTimer = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        setIsLocked(true);
+        handleLock();
       }, getInactivityMs());
     };
 
@@ -106,27 +118,35 @@ function App() {
     events.forEach(event => window.addEventListener(event, resetTimer, { passive: true }));
     resetTimer(); // Start the initial timer
 
-    // Tab-switch panic mode: instantly blackouts screen if user switches away
-    // Only activates if user has explicitly opted in (kd_tab_switch_lock = 'true')
+    // Tab-switch and window-blur panic mode: instantly blackouts/locks screen
+    // Default active unless explicitly disabled ('false')
     const handleVisibilityChange = () => {
       if (document.hidden) {
         const tabLockSetting = localStorage.getItem('kd_tab_switch_lock');
-        const isEnabled = tabLockSetting === 'true'; // Default OFF — don't lock on every tab navigation
-        if (isEnabled) {
-          setIsLocked(true);
+        if (tabLockSetting !== 'false') {
+          handleLock();
         }
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
+    const handleWindowBlur = () => {
+      const tabLockSetting = localStorage.getItem('kd_tab_switch_lock');
+      if (tabLockSetting !== 'false') {
+        handleLock();
+      }
+    };
+    window.addEventListener('blur', handleWindowBlur);
+
     // Listen for session expired events from the API interceptor
-    const handleSessionExpired = () => setIsLocked(true);
+    const handleSessionExpired = () => handleLock();
     window.addEventListener('kd_session_expired', handleSessionExpired);
 
     return () => {
       clearTimeout(timeoutId);
       events.forEach(event => window.removeEventListener(event, resetTimer));
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleWindowBlur);
       window.removeEventListener('kd_session_expired', handleSessionExpired);
     };
   }, []);
@@ -137,7 +157,7 @@ function App() {
         return (
           <ExecutiveDashboard 
             onNavigateTab={(tab) => setActiveTab(tab)} 
-            onQuickLock={() => setIsLocked(true)}
+            onQuickLock={handleLock}
             overview={overview}
             hoursLogged={hoursLogged}
           />
@@ -182,7 +202,7 @@ function App() {
         return (
           <SecuritySettingsView 
             onNavigateTab={(tab) => setActiveTab(tab)} 
-            onTriggerLock={() => setIsLocked(true)}
+            onTriggerLock={handleLock}
             theme={theme}
             onToggleTheme={toggleTheme}
           />
@@ -192,7 +212,7 @@ function App() {
         return (
           <ExecutiveDashboard 
             onNavigateTab={(tab) => setActiveTab(tab)} 
-            onQuickLock={() => setIsLocked(true)}
+            onQuickLock={handleLock}
             overview={overview}
             hoursLogged={hoursLogged}
           />
@@ -205,7 +225,7 @@ function App() {
       {/* CEO Privacy Lock Screen (Protects against the 6 laptop users) */}
       <QuickLockModal 
         isLocked={isLocked} 
-        onUnlock={() => setIsLocked(false)} 
+        onUnlock={handleUnlock} 
       />
 
       {/* Top Workday-Style Executive Navbar */}
@@ -214,7 +234,7 @@ function App() {
         setSidebarCollapsed={setSidebarCollapsed}
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
-        onQuickLock={() => setIsLocked(true)}
+        onQuickLock={handleLock}
         hoursLogged={hoursLogged}
         theme={theme}
         onToggleTheme={toggleTheme}
