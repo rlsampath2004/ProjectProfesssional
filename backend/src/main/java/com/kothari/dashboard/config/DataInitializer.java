@@ -20,6 +20,9 @@ import com.kothari.dashboard.olx.entity.OlxSale;
 import com.kothari.dashboard.olx.entity.PaymentMode;
 import com.kothari.dashboard.olx.repository.OlxListingRepository;
 import com.kothari.dashboard.olx.repository.OlxSaleRepository;
+import com.kothari.dashboard.task.entity.TaskItem;
+import com.kothari.dashboard.task.entity.TaskPriority;
+import com.kothari.dashboard.task.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -28,6 +31,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * Initial Seed Component:
@@ -46,6 +50,7 @@ public class DataInitializer implements CommandLineRunner {
     private final AllocationRepository allocationRepository;
     private final OlxListingRepository olxListingRepository;
     private final OlxSaleRepository olxSaleRepository;
+    private final TaskRepository taskRepository;
     private final PasswordEncoder passwordEncoder;
     private final MfaService mfaService;
 
@@ -342,6 +347,61 @@ public class DataInitializer implements CommandLineRunner {
 
         olxSaleRepository.save(sale1);
         olxSaleRepository.save(sale2);
+
+        // 6. Executive CEO Tasks
+        TaskItem t1 = TaskItem.builder()
+                .ownerId(owner.getId())
+                .title("Sign off quarterly IT physical stocktake for Branch B")
+                .priority(TaskPriority.CRITICAL)
+                .category("IT ASSETS")
+                .due("TODAY 17:00")
+                .completed(false)
+                .build();
+
+        TaskItem t2 = TaskItem.builder()
+                .ownerId(owner.getId())
+                .title("Verify OLX payment received for 2 sold Lenovo ThinkPads")
+                .priority(TaskPriority.HIGH)
+                .category("OLX SALES")
+                .due("TODAY 18:30")
+                .completed(false)
+                .build();
+
+        TaskItem t3 = TaskItem.builder()
+                .ownerId(owner.getId())
+                .title("Approve allocation of Dell 24\" Monitors to Billing Desk")
+                .priority(TaskPriority.NORMAL)
+                .category("IT ASSETS")
+                .due("TODAY 19:00")
+                .completed(true)
+                .completedAt(LocalDateTime.now().minusHours(2))
+                .build();
+
+        TaskItem t4 = TaskItem.builder()
+                .ownerId(owner.getId())
+                .title("Review weekly hours report and overtime entries")
+                .priority(TaskPriority.NORMAL)
+                .category("OPERATIONS")
+                .due("TOMORROW 10:00")
+                .completed(true)
+                .completedAt(LocalDateTime.now().minusHours(1))
+                .build();
+
+        TaskItem t5 = TaskItem.builder()
+                .ownerId(owner.getId())
+                .title("Import latest vendor hardware invoices via Excel")
+                .priority(TaskPriority.HIGH)
+                .category("OPERATIONS")
+                .due("TOMORROW 14:00")
+                .completed(true)
+                .completedAt(LocalDateTime.now().minusMinutes(30))
+                .build();
+
+        taskRepository.save(t1);
+        taskRepository.save(t2);
+        taskRepository.save(t3);
+        taskRepository.save(t4);
+        taskRepository.save(t5);
 
         log.info("Baseline enterprise seed data created successfully!");
     }

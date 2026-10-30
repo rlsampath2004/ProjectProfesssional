@@ -37,16 +37,17 @@ export default function Navbar({
   };
 
   return (
-    <header className="kd-navbar fixed-top px-3 px-lg-4 d-flex align-items-center justify-content-between">
+    <header className="kd-navbar fixed-top px-2 px-sm-3 px-lg-4 d-flex align-items-center justify-content-between">
       {/* Brand & Toggler */}
-      <div className="d-flex align-items-center gap-3">
+      <div className="d-flex align-items-center gap-2 gap-sm-3">
         {/* Mobile Toggler */}
         <button 
           className="kd-toggler-btn d-lg-none"
           onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Toggle navigation"
+          aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={mobileOpen}
         >
-          <i className="bi bi-list fs-5"></i>
+          <i className={`bi ${mobileOpen ? 'bi-x-lg' : 'bi-list'} fs-5`}></i>
         </button>
 
         {/* Desktop Toggler */}
@@ -64,10 +65,10 @@ export default function Navbar({
             KD
           </div>
           <div>
-            <div className="fw-bold text-white text-uppercase" style={{ letterSpacing: '0.06em', fontSize: '0.88rem', lineHeight: 1.2 }}>
+            <div className="fw-bold text-white text-uppercase text-truncate" style={{ letterSpacing: '0.06em', fontSize: '0.86rem', lineHeight: 1.2, maxWidth: '170px' }}>
               Kothari Distributors
             </div>
-            <div className="kd-mono text-secondary" style={{ fontSize: '0.68rem', letterSpacing: '0.04em' }}>
+            <div className="kd-mono text-secondary d-none d-sm-block" style={{ fontSize: '0.65rem', letterSpacing: '0.04em' }}>
               CEO IT & OPERATIONS COMMAND
             </div>
           </div>
@@ -89,7 +90,7 @@ export default function Navbar({
       </div>
 
       {/* Right Controls */}
-      <div className="d-flex align-items-center gap-2 gap-lg-3">
+      <div className="d-flex align-items-center gap-1 gap-sm-2 gap-lg-3">
         {/* Hours Logged Badge */}
         <div 
           className="d-none d-xl-flex align-items-center gap-2 px-3 py-1 rounded-2 kd-mono"

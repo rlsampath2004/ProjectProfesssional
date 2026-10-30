@@ -1,66 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ExecutiveStats from './ExecutiveStats';
 import WeeklyProgressChart from './WeeklyProgressChart';
 import TodayScheduleCalendar from './TodayScheduleCalendar';
 import OpenTasksBoard from './OpenTasksBoard';
 import QuickNavCards from './QuickNavCards';
 import FleetSnapshot from './FleetSnapshot';
+import dashboardService, { initialTasksList } from '../../services/dashboardService';
 
 export default function ExecutiveDashboard({ onNavigateTab, onQuickLock }) {
   // Tasks state (reactive - checking a task dynamically recalculates the completion %!)
-  const [tasks, setTasks] = useState([
-    {
-      id: 1,
-      title: 'Sign off quarterly IT physical stocktake for Branch B',
-      priority: 'CRITICAL',
-      category: 'IT ASSETS',
-      due: 'TODAY 17:00',
-      completed: false
-    },
-    {
-      id: 2,
-      title: 'Verify OLX payment received for 2 sold Lenovo ThinkPads',
-      priority: 'HIGH',
-      category: 'OLX SALES',
-      due: 'TODAY 18:30',
-      completed: false
-    },
-    {
-      id: 3,
-      title: 'Approve allocation of Dell 24" Monitors to Billing Desk',
-      priority: 'NORMAL',
-      category: 'IT ASSETS',
-      due: 'TODAY 19:00',
-      completed: true
-    },
-    {
-      id: 4,
-      title: 'Review weekly hours report and overtime entries',
-      priority: 'NORMAL',
-      category: 'OPERATIONS',
-      due: 'TOMORROW 10:00',
-      completed: true
-    },
-    {
-      id: 5,
-      title: 'Import latest vendor hardware invoices via Excel',
-      priority: 'HIGH',
-      category: 'OPERATIONS',
-      due: 'TOMORROW 14:00',
-      completed: true
-    }
-  ]);
+  const [tasks, setTasks] = useState(initialTasksList);
+  const [overview, setOverview] = useState(null);
 
-  const toggleTask = (id) => {
+  useEffect(() => {
+    let isMounted = true;
+    dashboardService.getTasks().then(data => {
+      if (isMounted && data && data.length > 0) {
+        setTasks(data);
+      }
+    });
+    dashboardService.getOverview().then(data => {
+      if (isMounted && data) {
+        setOverview(data);
+      }
+    });
+    return () => { isMounted = false; };
+  }, []);
+
+  const toggleTask = async (id) => {
     setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+    await dashboardService.toggleTask(id);
   };
 
-  const addTask = (newTask) => {
-    setTasks([newTask, ...tasks]);
+  const addTask = async (newTask) => {
+    const created = await dashboardService.createTask(newTask);
+    setTasks([created, ...tasks]);
   };
 
-  const deleteTask = (id) => {
+  const deleteTask = async (id) => {
     setTasks(tasks.filter(t => t.id !== id));
+    await dashboardService.deleteTask(id);
   };
 
   const completedCount = tasks.filter(t => t.completed).length;
@@ -119,8 +98,8 @@ export default function ExecutiveDashboard({ onNavigateTab, onQuickLock }) {
         hoursLogged="06h 45m"
         completedTasks={completedCount}
         totalTasks={totalCount}
-        weeklyTargetPercent={94}
-        pendingAlertsCount={tasks.filter(t => !t.completed && t.priority === 'CRITICAL').length || 1}
+        weeklyTargetPercent={overview ? Math.min(100, Math.round((completedCount / (totalCount || 1)) * 100) + 15) : 94}
+        pendingAlertsCount={overview ? overview.totalDiscrepanciesCount : (tasks.filter(t => !t.completed && t.priority === 'CRITICAL').length || 1)}
         onNavigateTab={onNavigateTab}
       />
 

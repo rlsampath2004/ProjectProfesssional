@@ -26,5 +26,7 @@ public interface AuditDiscrepancyRepository extends JpaRepository<AuditDiscrepan
     int countByAuditSessionAndOwnerId(AuditSession auditSession, UUID ownerId);
 
     int countByAuditSessionAndOwnerIdAndStatusNot(AuditSession auditSession, UUID ownerId, DiscrepancyStatus status);
+
+    int countByOwnerId(UUID ownerId);
 }
 
