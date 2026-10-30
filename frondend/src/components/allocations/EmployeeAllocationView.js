@@ -216,7 +216,9 @@ export default function EmployeeAllocationView({ onNavigateTab }) {
         <div className="col-6 col-lg-3">
           <div className="kd-metric-tile kd-hover-rose">
             <div className="kd-metric-label mb-1">PENDING VERIFICATION</div>
-            <div className="kd-metric-value kd-mono text-danger fs-4">02</div>
+            <div className="kd-metric-value kd-mono text-danger fs-4">
+              {String(allocations.filter(a => a.status === 'Active Custody' && (!a.expectedReturnDate || new Date(a.expectedReturnDate) < new Date())).length).padStart(2, '0')}
+            </div>
             <span className="kd-mono text-secondary" style={{ fontSize: '0.68rem' }}>ANNUAL AUDIT CHECKS DUE</span>
           </div>
         </div>

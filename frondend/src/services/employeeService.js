@@ -35,10 +35,13 @@ export const employeeService = {
     try {
       const response = await api.get('/api/employees', { params });
       const pageData = response.data?.data;
-      if (pageData?.content && Array.isArray(pageData.content) && pageData.content.length > 0) {
+      if (pageData && Array.isArray(pageData.content)) {
         return pageData.content.map(transformBackendEmployee);
       }
-      return initialEmployees;
+      if (Array.isArray(pageData)) {
+        return pageData.map(transformBackendEmployee);
+      }
+      return [];
     } catch (err) {
       console.warn('[EmployeeService] Backend unavailable, using cached employee list:', err.message);
       return initialEmployees;

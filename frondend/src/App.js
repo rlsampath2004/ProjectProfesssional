@@ -9,15 +9,36 @@ import OlxSalesView from './components/olx/OlxSalesView';
 import ExcelSyncView from './components/excel/ExcelSyncView';
 import SecuritySettingsView from './components/security/SecuritySettingsView';
 import QuickLockModal from './components/dashboard/QuickLockModal';
+import authService from './services/authService';
+import dashboardService from './services/dashboardService';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [overview, setOverview] = useState(null);
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('kd_theme') || 'dark';
   });
+
+  // Seamless Backend Authentication Handshake & Live Overview Bootstrap
+  useEffect(() => {
+    let isMounted = true;
+    const bootstrapBackendConnection = async () => {
+      try {
+        await authService.ensureAuthenticated();
+        const overviewData = await dashboardService.getOverview();
+        if (isMounted && overviewData) {
+          setOverview(overviewData);
+        }
+      } catch (err) {
+        console.warn('[App] Backend connection notice:', err);
+      }
+    };
+    bootstrapBackendConnection();
+    return () => { isMounted = false; };
+  }, []);
 
   // Apply theme to document element and body
   useEffect(() => {
@@ -80,6 +101,7 @@ function App() {
           <ExecutiveDashboard 
             onNavigateTab={(tab) => setActiveTab(tab)} 
             onQuickLock={() => setIsLocked(true)}
+            overview={overview}
           />
         );
 
@@ -166,6 +188,7 @@ function App() {
         setSidebarCollapsed={setSidebarCollapsed}
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
+        overview={overview}
       />
 
       {/* Main Content Stage */}

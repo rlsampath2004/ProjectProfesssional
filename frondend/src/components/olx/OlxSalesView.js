@@ -38,14 +38,17 @@ export default function OlxSalesView({ onNavigateTab }) {
   // Computed KPIs
   const todayStr = new Date().toISOString().split('T')[0];
   const devicesSoldToday = listings.filter(item => 
-    item.soldToday || (item.status === 'Sold' && (item.dateSold === todayStr || item.dateSold === '2026-10-29'))
+    item.soldToday || (item.status === 'Sold' && (item.dateSold === todayStr || item.dateSold?.startsWith(todayStr.slice(0, 7))))
   );
   const soldTodayCount = devicesSoldToday.length;
   
   const revenueSoldToday = devicesSoldToday.reduce((acc, curr) => acc + (curr.soldPrice || 0), 0);
   
-  // Expected sales for today (active + negotiating items scheduled or projected)
-  const expectedSalesToday = 24000; // Today's target benchmark
+  // Dynamic expected sales pipeline based on active and negotiating items
+  const activeNegotiatingSum = listings
+    .filter(item => item.status === 'Active' || item.status === 'Negotiating')
+    .reduce((acc, curr) => acc + (curr.expectedPrice || curr.askingPrice || 0), 0);
+  const expectedSalesToday = activeNegotiatingSum > 0 ? activeNegotiatingSum : (revenueSoldToday > 0 ? revenueSoldToday : 24000);
   
   const totalSalesRealized = listings
     .filter(item => item.status === 'Sold')
@@ -282,7 +285,7 @@ export default function OlxSalesView({ onNavigateTab }) {
               <span className="fs-3 fw-bold text-warning font-monospace">₹{expectedSalesToday.toLocaleString('en-IN')}</span>
             </div>
             <div className="mt-2 text-secondary small" style={{ fontSize: '11px' }}>
-              Paced at <span className="text-light fw-bold">{Math.round((revenueSoldToday / expectedSalesToday) * 100)}%</span> of target
+              Paced at <span className="text-light fw-bold">{expectedSalesToday > 0 ? Math.round((revenueSoldToday / expectedSalesToday) * 100) : 100}%</span> of target
             </div>
           </div>
         </div>

@@ -37,10 +37,10 @@ export const olxService = {
     try {
       const response = await api.get('/api/olx/listings', { params });
       const data = response.data?.data;
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         return data.map(transformBackendListing);
       }
-      return initialOlxListings;
+      return [];
     } catch (err) {
       console.warn('[OlxService] Backend unavailable, using cached listings:', err.message);
       return initialOlxListings;

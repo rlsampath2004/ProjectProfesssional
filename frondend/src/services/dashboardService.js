@@ -58,7 +58,7 @@ export const dashboardService = {
     try {
       const response = await api.get('/api/tasks');
       const data = response.data?.data;
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         return data.map(t => ({
           id: t.id,
           title: t.title,
@@ -69,7 +69,7 @@ export const dashboardService = {
           completedAt: t.completedAt
         }));
       }
-      return initialTasksList;
+      return [];
     } catch (err) {
       console.warn('[DashboardService] Backend unavailable, using cached tasks:', err.message);
       return initialTasksList;

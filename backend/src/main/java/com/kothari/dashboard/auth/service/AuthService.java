@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public interface AuthService {
 
-    LoginResponse login(LoginRequest request, String ipAddress, String userAgent);
+    Pair<LoginResponse, String> login(LoginRequest request, String ipAddress, String userAgent);
 
     Pair<LoginResponse, String> verifyMfa(MfaVerifyRequest request, String ipAddress, String userAgent);
 

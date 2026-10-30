@@ -1,13 +1,13 @@
 import React from 'react';
 
-export default function QuickNavCards({ onNavigateTab }) {
+export default function QuickNavCards({ onNavigateTab, overview }) {
   const modules = [
     {
       id: 'assets',
       title: 'IT Asset Inventory',
       code: 'AST-01',
       icon: 'bi-laptop',
-      stats: '248 UNITS',
+      stats: overview?.totalAssetsCount !== undefined ? `${overview.totalAssetsCount} UNITS` : 'FLEET ACTIVE',
       description: 'Laptops, desktops, label & A4 printers, network switches, firewalls & SIM cards.',
       tagClass: 'kd-tag-neutral'
     },
@@ -16,7 +16,7 @@ export default function QuickNavCards({ onNavigateTab }) {
       title: 'Employee Allocation',
       code: 'ALC-02',
       icon: 'bi-people',
-      stats: '185 ASSIGNED',
+      stats: overview?.totalActiveAllocationsCount !== undefined ? `${overview.totalActiveAllocationsCount} ASSIGNED` : 'IN CUSTODY',
       description: 'Digital custody logs, staff assignment history, and handover acknowledgments.',
       tagClass: 'kd-tag-neutral'
     },
@@ -25,16 +25,16 @@ export default function QuickNavCards({ onNavigateTab }) {
       title: 'Audit & Verification',
       code: 'ADT-03',
       icon: 'bi-patch-check',
-      stats: '03 PENDING',
+      stats: overview?.totalDiscrepanciesCount !== undefined ? `${String(overview.totalDiscrepanciesCount).padStart(2, '0')} PENDING` : 'AUDIT READY',
       description: 'Physical branch stocktake, serial number validation, and discrepancy alerts.',
-      tagClass: 'kd-tag-amber'
+      tagClass: overview?.totalDiscrepanciesCount > 0 ? 'kd-tag-amber' : 'kd-tag-neutral'
     },
     {
       id: 'olx',
       title: 'OLX Sales Pipeline',
       code: 'SLS-04',
       icon: 'bi-tag',
-      stats: '14 LISTED',
+      stats: overview?.olxActiveListingsCount !== undefined ? `${overview.olxActiveListingsCount} LISTED` : 'SECONDARY OPS',
       description: 'Decommissioned equipment listings, asking prices, and realized sales tracking.',
       tagClass: 'kd-tag-neutral'
     },

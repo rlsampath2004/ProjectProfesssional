@@ -27,13 +27,18 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(
             @Valid @RequestBody LoginRequest request,
-            HttpServletRequest httpRequest) {
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
 
         String ip = getClientIp(httpRequest);
         String userAgent = httpRequest.getHeader("User-Agent");
 
-        LoginResponse response = authService.login(request, ip, userAgent);
-        return ResponseEntity.ok(ApiResponse.ok("Authentication processed", response));
+        Pair<LoginResponse, String> result = authService.login(request, ip, userAgent);
+        if (result.getSecond() != null) {
+            setRefreshCookie(httpResponse, result.getSecond());
+        }
+
+        return ResponseEntity.ok(ApiResponse.ok("Authentication processed", result.getFirst()));
     }
 
     @PostMapping("/mfa/verify")

@@ -96,10 +96,13 @@ export const assetService = {
     try {
       const response = await api.get('/api/assets', { params });
       const pageData = response.data?.data;
-      if (pageData?.content && Array.isArray(pageData.content) && pageData.content.length > 0) {
+      if (pageData && Array.isArray(pageData.content)) {
         return pageData.content.map(transformBackendAsset);
       }
-      return initialAssets;
+      if (Array.isArray(pageData)) {
+        return pageData.map(transformBackendAsset);
+      }
+      return [];
     } catch (err) {
       console.warn('[AssetService] Backend unavailable, using cached assets:', err.message);
       return initialAssets;

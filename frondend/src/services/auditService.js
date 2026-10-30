@@ -46,10 +46,13 @@ export const auditService = {
     try {
       const response = await api.get('/api/audit/sessions', { params });
       const pageData = response.data?.data;
-      if (pageData?.content && Array.isArray(pageData.content) && pageData.content.length > 0) {
+      if (pageData && Array.isArray(pageData.content)) {
         return pageData.content.map(transformBackendSession);
       }
-      return initialAuditSessions;
+      if (Array.isArray(pageData)) {
+        return pageData.map(transformBackendSession);
+      }
+      return [];
     } catch (err) {
       console.warn('[AuditService] Backend unavailable, using cached sessions:', err.message);
       return initialAuditSessions;
@@ -111,10 +114,13 @@ export const auditService = {
     try {
       const response = await api.get('/api/audit/discrepancies', { params });
       const pageData = response.data?.data;
-      if (pageData?.content && Array.isArray(pageData.content) && pageData.content.length > 0) {
+      if (pageData && Array.isArray(pageData.content)) {
         return pageData.content.map(transformBackendDiscrepancy);
       }
-      return initialDiscrepancies;
+      if (Array.isArray(pageData)) {
+        return pageData.map(transformBackendDiscrepancy);
+      }
+      return [];
     } catch (err) {
       console.warn('[AuditService] Backend unavailable, using cached discrepancies:', err.message);
       return initialDiscrepancies;

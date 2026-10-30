@@ -104,13 +104,13 @@ export default function ExecutiveDashboard({ onNavigateTab, onQuickLock }) {
       />
 
       {/* Row 2: Operational Modules */}
-      <QuickNavCards onNavigateTab={onNavigateTab} />
+      <QuickNavCards onNavigateTab={onNavigateTab} overview={overview} />
 
       {/* Row 3: Analytics & Execution Grid */}
       <div className="row g-3 mb-4">
         {/* Left Column: Trajectory Chart + Hardware Fleet */}
         <div className="col-12 col-lg-7 d-flex flex-column gap-3">
-          <WeeklyProgressChart />
+          <WeeklyProgressChart tasks={tasks} />
           <FleetSnapshot onNavigateTab={onNavigateTab} />
         </div>
 

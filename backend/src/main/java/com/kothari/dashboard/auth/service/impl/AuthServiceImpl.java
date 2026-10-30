@@ -47,7 +47,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public LoginResponse login(LoginRequest request, String ipAddress, String userAgent) {
+    public Pair<LoginResponse, String> login(LoginRequest request, String ipAddress, String userAgent) {
         String identifier = request.getUsername().trim().toLowerCase();
         Optional<User> userOpt = userRepository.findByUsername(identifier)
                 .or(() -> userRepository.findByEmail(identifier));
@@ -87,15 +87,16 @@ public class AuthServiceImpl implements AuthService {
         // MFA is mandatory for CEO/Owner account
         if (user.isMfaEnabled()) {
             String tempToken = tokenService.generateTempMfaToken(user);
-            return LoginResponse.builder()
+            LoginResponse resp = LoginResponse.builder()
                     .mfaRequired(true)
                     .tempToken(tempToken)
                     .username(user.getUsername())
                     .build();
+            return Pair.of(resp, null);
         }
 
         // Direct issue if MFA not yet configured
-        return issueFullSession(user, ipAddress, userAgent).getFirst();
+        return issueFullSession(user, ipAddress, userAgent);
     }
 
     @Override

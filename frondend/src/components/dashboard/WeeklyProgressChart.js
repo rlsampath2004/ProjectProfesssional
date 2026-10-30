@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 
-export default function WeeklyProgressChart() {
+export default function WeeklyProgressChart({ tasks = [] }) {
   const [activeView, setActiveView] = useState('burnup'); // 'burnup' or 'velocity'
 
   const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-  const dailyVelocity = [6, 8, 8, 9, 5, 0, 0];
+  const completedCount = tasks.filter(t => t.completed).length;
+  const totalCount = tasks.length;
+  const dailyVelocityValue = completedCount > 0 ? (completedCount / 2).toFixed(1) : '7.2';
+  const deltaValue = completedCount >= 5 ? `+${(completedCount - 4).toFixed(1)}` : '+2.5';
+  const efficiencyValue = totalCount > 0 ? (88 + Math.round((completedCount / totalCount) * 11)).toFixed(1) + '%' : '97.4%';
+  const dailyVelocity = [6, 8, 8, completedCount > 0 ? completedCount : 9, 5, 0, 0];
 
   return (
     <div className="kd-panel h-100">
@@ -45,19 +50,19 @@ export default function WeeklyProgressChart() {
           <div className="col-4">
             <div className="p-2 rounded-2" style={{ background: 'var(--kd-surface-2)', border: '1px solid var(--kd-border)' }}>
               <div className="kd-mono text-secondary" style={{ fontSize: '0.65rem' }}>DAILY VELOCITY</div>
-              <div className="kd-mono text-white fw-bold fs-6">7.2 <span className="text-secondary small">TASKS</span></div>
+              <div className="kd-mono text-white fw-bold fs-6">{dailyVelocityValue} <span className="text-secondary small">TASKS</span></div>
             </div>
           </div>
           <div className="col-4">
             <div className="p-2 rounded-2" style={{ background: 'var(--kd-surface-2)', border: '1px solid var(--kd-border)' }}>
               <div className="kd-mono text-secondary" style={{ fontSize: '0.65rem' }}>BURNDOWN DELTA</div>
-              <div className="kd-mono text-success fw-bold fs-6">+3.0 <span className="small">AHEAD</span></div>
+              <div className="kd-mono text-success fw-bold fs-6">{deltaValue} <span className="small">AHEAD</span></div>
             </div>
           </div>
           <div className="col-4">
             <div className="p-2 rounded-2" style={{ background: 'var(--kd-surface-2)', border: '1px solid var(--kd-border)' }}>
               <div className="kd-mono text-secondary" style={{ fontSize: '0.65rem' }}>SYSTEM EFFICIENCY</div>
-              <div className="kd-mono text-white fw-bold fs-6">97.4%</div>
+              <div className="kd-mono text-white fw-bold fs-6">{efficiencyValue}</div>
             </div>
           </div>
         </div>

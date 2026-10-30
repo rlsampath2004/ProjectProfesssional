@@ -33,14 +33,21 @@ public class AssetController {
     private static final UUID DEFAULT_OWNER_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
     private UUID resolveOwnerId(Principal principal) {
-        if (principal == null || principal.getName() == null) {
+        if (principal == null) {
             return DEFAULT_OWNER_ID;
         }
-        try {
-            return UUID.fromString(principal.getName());
-        } catch (IllegalArgumentException e) {
-            return DEFAULT_OWNER_ID;
+        if (principal instanceof org.springframework.security.core.Authentication auth) {
+            if (auth.getPrincipal() instanceof com.kothari.dashboard.auth.entity.User user) {
+                return user.getId();
+            }
         }
+        if (principal.getName() != null) {
+            try {
+                return UUID.fromString(principal.getName());
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        return DEFAULT_OWNER_ID;
     }
 
     @GetMapping

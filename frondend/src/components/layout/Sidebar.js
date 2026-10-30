@@ -6,7 +6,8 @@ export default function Sidebar({
   sidebarCollapsed,
   setSidebarCollapsed,
   mobileOpen,
-  setMobileOpen
+  setMobileOpen,
+  overview = null
 }) {
   const navItems = [
     {
@@ -20,28 +21,28 @@ export default function Sidebar({
       id: 'assets',
       label: 'IT Asset Inventory',
       icon: 'bi-laptop',
-      badge: '248',
+      badge: overview ? String(overview.totalAssetsCount) : 'SYNC',
       badgeClass: 'kd-tag-neutral',
     },
     {
       id: 'allocation',
       label: 'Employee Allocation',
       icon: 'bi-people',
-      badge: '185',
+      badge: overview ? String(overview.totalActiveAllocationsCount) : 'SYNC',
       badgeClass: 'kd-tag-neutral',
     },
     {
       id: 'audit',
       label: 'Audit & Verification',
       icon: 'bi-shield-check',
-      badge: '3 DUE',
-      badgeClass: 'kd-tag-amber',
+      badge: overview ? `${overview.totalDiscrepanciesCount || 0} DUE` : 'AUDIT',
+      badgeClass: overview?.totalDiscrepanciesCount > 0 ? 'kd-tag-amber' : 'kd-tag-neutral',
     },
     {
       id: 'olx',
       label: 'OLX Sales Pipeline',
       icon: 'bi-tag',
-      badge: '14 ACTIVE',
+      badge: overview ? `${overview.olxActiveListingsCount || 0} ACTIVE` : 'OLX',
       badgeClass: 'kd-tag-neutral',
     },
     {

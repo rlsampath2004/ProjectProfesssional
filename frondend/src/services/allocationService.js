@@ -30,10 +30,13 @@ export const allocationService = {
     try {
       const response = await api.get('/api/allocations', { params });
       const pageData = response.data?.data;
-      if (pageData?.content && Array.isArray(pageData.content) && pageData.content.length > 0) {
+      if (pageData && Array.isArray(pageData.content)) {
         return pageData.content.map(transformBackendAllocation);
       }
-      return initialAllocations;
+      if (Array.isArray(pageData)) {
+        return pageData.map(transformBackendAllocation);
+      }
+      return [];
     } catch (err) {
       console.warn('[AllocationService] Backend unavailable, using cached allocations:', err.message);
       return initialAllocations;

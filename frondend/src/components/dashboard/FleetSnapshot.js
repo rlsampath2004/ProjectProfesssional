@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import assetService from '../../services/assetService';
+import olxService from '../../services/olxService';
 
 export default function FleetSnapshot({ onNavigateTab }) {
   const [categories, setCategories] = useState([
@@ -12,32 +13,41 @@ export default function FleetSnapshot({ onNavigateTab }) {
     { name: 'Switches & Firewalls', count: 0, icon: 'bi-hdd-network' },
     { name: 'SIM Cards & Dongles', count: 0, icon: 'bi-sim' },
   ]);
+  const [olxKpis, setOlxKpis] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
-    assetService.getAssets().then(assets => {
-      if (isMounted && assets && assets.length > 0) {
-        const counts = {
-          'Laptops': assets.filter(a => a.category === 'Laptops').length,
-          'Desktop Systems': assets.filter(a => a.category === 'Desktops').length,
-          'Monitors': assets.filter(a => a.category === 'Monitors').length,
-          'Printers (A4/Label)': assets.filter(a => a.category && a.category.includes('Printer')).length,
-          'Switches & Firewalls': assets.filter(a => a.category && (a.category.includes('Switch') || a.category.includes('Server'))).length,
-          'SIM Cards & Dongles': assets.filter(a => a.category && a.category.includes('SIM')).length,
-          'Power Chargers': Math.round(assets.length * 0.9),
-          'Keyboards & Mice': Math.round(assets.length * 1.1),
-        };
+    Promise.all([
+      assetService.getAssets(),
+      olxService.getKpis()
+    ]).then(([assets, kpiData]) => {
+      if (isMounted) {
+        if (kpiData) {
+          setOlxKpis(kpiData);
+        }
+        if (assets && assets.length > 0) {
+          const counts = {
+            'Laptops': assets.filter(a => a.category === 'Laptops').length,
+            'Desktop Systems': assets.filter(a => a.category === 'Desktops').length,
+            'Monitors': assets.filter(a => a.category === 'Monitors').length,
+            'Printers (A4/Label)': assets.filter(a => a.category && a.category.includes('Printer')).length,
+            'Switches & Firewalls': assets.filter(a => a.category && (a.category.includes('Switch') || a.category.includes('Server'))).length,
+            'SIM Cards & Dongles': assets.filter(a => a.category && a.category.includes('SIM')).length,
+            'Power Chargers': Math.round(assets.length * 0.9),
+            'Keyboards & Mice': Math.round(assets.length * 1.1),
+          };
 
-        setCategories([
-          { name: 'Laptops', count: counts['Laptops'], icon: 'bi-laptop' },
-          { name: 'Desktop Systems', count: counts['Desktop Systems'], icon: 'bi-display' },
-          { name: 'Power Chargers', count: counts['Power Chargers'], icon: 'bi-plug' },
-          { name: 'Monitors', count: counts['Monitors'], icon: 'bi-tv' },
-          { name: 'Keyboards & Mice', count: counts['Keyboards & Mice'], icon: 'bi-keyboard' },
-          { name: 'Printers (A4/Label)', count: counts['Printers (A4/Label)'], icon: 'bi-printer' },
-          { name: 'Switches & Firewalls', count: counts['Switches & Firewalls'], icon: 'bi-hdd-network' },
-          { name: 'SIM Cards & Dongles', count: counts['SIM Cards & Dongles'], icon: 'bi-sim' },
-        ]);
+          setCategories([
+            { name: 'Laptops', count: counts['Laptops'], icon: 'bi-laptop' },
+            { name: 'Desktop Systems', count: counts['Desktop Systems'], icon: 'bi-display' },
+            { name: 'Power Chargers', count: counts['Power Chargers'], icon: 'bi-plug' },
+            { name: 'Monitors', count: counts['Monitors'], icon: 'bi-tv' },
+            { name: 'Keyboards & Mice', count: counts['Keyboards & Mice'], icon: 'bi-keyboard' },
+            { name: 'Printers (A4/Label)', count: counts['Printers (A4/Label)'], icon: 'bi-printer' },
+            { name: 'Switches & Firewalls', count: counts['Switches & Firewalls'], icon: 'bi-hdd-network' },
+            { name: 'SIM Cards & Dongles', count: counts['SIM Cards & Dongles'], icon: 'bi-sim' },
+          ]);
+        }
       }
     });
     return () => { isMounted = false; };
@@ -94,10 +104,12 @@ export default function FleetSnapshot({ onNavigateTab }) {
           <div>
             <div className="d-flex align-items-center gap-2 mb-1">
               <span className="kd-tag kd-tag-neutral">OLX PIPELINE</span>
-              <span className="text-white small fw-bold">14 DECOMMISSIONED UNITS ACTIVE</span>
+              <span className="text-white small fw-bold">
+                {olxKpis ? `${olxKpis.activeListingsCount} DECOMMISSIONED UNITS ACTIVE` : 'SECONDARY HARDWARE PIPELINE'}
+              </span>
             </div>
             <div className="kd-mono text-secondary small" style={{ fontSize: '0.72rem' }}>
-              EXPECTED REVENUE: <span className="text-white fw-bold">₹32,000</span> • REALIZED TODAY: <span className="text-success fw-bold">₹18,500</span>
+              EXPECTED REVENUE: <span className="text-white fw-bold">₹{Number(olxKpis?.expectedRevenue || 0).toLocaleString('en-IN')}</span> • REALIZED: <span className="text-success fw-bold">₹{Number(olxKpis?.totalRealizedRevenue || 0).toLocaleString('en-IN')}</span>
             </div>
           </div>
 

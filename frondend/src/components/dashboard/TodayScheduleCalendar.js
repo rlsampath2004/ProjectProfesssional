@@ -1,12 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 export default function TodayScheduleCalendar() {
-  const [selectedDate, setSelectedDate] = useState(29);
-  const [currentMonth] = useState('OCTOBER 2026');
+  const today = useMemo(() => new Date(), []);
+  const todayDateNum = today.getDate();
+  const currentMonth = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+  const currentMonthShort = today.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+
+  const [selectedDate, setSelectedDate] = useState(todayDateNum);
   
-  // Schedule items organized by date
-  const [scheduleData, setScheduleData] = useState({
-    29: [
+  // Schedule items organized by date (defaults for today and tomorrow)
+  const [scheduleData, setScheduleData] = useState(() => ({
+    [todayDateNum]: [
       {
         id: 1,
         time: '09:30',
@@ -24,7 +28,7 @@ export default function TodayScheduleCalendar() {
       {
         id: 3,
         time: '14:30',
-        title: 'Authorise Laptop Allocations for 4 New Engineers',
+        title: 'Authorise Laptop Allocations for New Engineers',
         category: 'ALLOCATION',
         done: false,
         current: true
@@ -32,7 +36,7 @@ export default function TodayScheduleCalendar() {
       {
         id: 4,
         time: '16:00',
-        title: 'OLX Buyer Negotiation & Price Closing (2 Desktops)',
+        title: 'OLX Buyer Negotiation & Price Closing (Decommissioned Units)',
         category: 'OLX SALES',
         done: false
       },
@@ -44,7 +48,7 @@ export default function TodayScheduleCalendar() {
         done: false
       }
     ],
-    30: [
+    [todayDateNum + 1]: [
       {
         id: 6,
         time: '10:00',
@@ -60,7 +64,7 @@ export default function TodayScheduleCalendar() {
         done: false
       }
     ]
-  });
+  }));
 
   const [newEventTitle, setNewEventTitle] = useState('');
   const [newEventTime, setNewEventTime] = useState('18:30');
@@ -93,16 +97,30 @@ export default function TodayScheduleCalendar() {
     setShowAddForm(false);
   };
 
-  // Mini Calendar Days (October 2026 starting Thursday = col 4)
-  const calendarDays = [
-    { day: 26, isCurrentMonth: false },
-    { day: 27, isCurrentMonth: false },
-    { day: 28, isCurrentMonth: false },
-    { day: 29, isCurrentMonth: true, hasEvents: true, isToday: true },
-    { day: 30, isCurrentMonth: true, hasEvents: true },
-    { day: 31, isCurrentMonth: true },
-    { day: 1, isCurrentMonth: false },
-  ];
+  // Dynamically compute calendar days for current week (Mon-Sun)
+  const calendarDays = useMemo(() => {
+    const d = new Date(today);
+    const dayOfWeek = d.getDay(); // 0 is Sun, 1 is Mon
+    const distToMon = (dayOfWeek + 6) % 7;
+    d.setDate(d.getDate() - distToMon);
+
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const cur = new Date(d);
+      cur.setDate(d.getDate() + i);
+      const dayNum = cur.getDate();
+      const isCurMonth = cur.getMonth() === today.getMonth();
+      const isToday = cur.toDateString() === today.toDateString();
+      const hasEvents = Boolean(scheduleData[dayNum] && scheduleData[dayNum].length > 0);
+      days.push({
+        day: dayNum,
+        isCurrentMonth: isCurMonth,
+        isToday,
+        hasEvents
+      });
+    }
+    return days;
+  }, [today, scheduleData]);
 
   return (
     <div className="kd-panel h-100">
@@ -133,7 +151,7 @@ export default function TodayScheduleCalendar() {
         <div className="p-2 mb-3 rounded-2" style={{ background: 'var(--kd-surface-2)', border: '1px solid var(--kd-border)' }}>
           <div className="d-flex align-items-center justify-content-between mb-2 px-1">
             <span className="kd-mono text-secondary fw-semibold" style={{ fontSize: '0.7rem' }}>WEEKLY TIMELINE</span>
-            <span className="kd-tag kd-tag-neutral py-0" style={{ fontSize: '0.65rem' }}>TODAY: 29 OCT</span>
+            <span className="kd-tag kd-tag-neutral py-0" style={{ fontSize: '0.65rem' }}>TODAY: {todayDateNum} {currentMonthShort}</span>
           </div>
 
           <div className="row g-1 text-center">
@@ -216,7 +234,7 @@ export default function TodayScheduleCalendar() {
               </div>
             </div>
             <button type="submit" className="kd-btn-solid w-100 py-1 justify-content-center" style={{ fontSize: '0.75rem' }}>
-              SAVE TO {selectedDate} OCT SCHEDULE
+              SAVE TO {selectedDate} {currentMonthShort} SCHEDULE
             </button>
           </form>
         )}
@@ -226,7 +244,7 @@ export default function TodayScheduleCalendar() {
           {currentItems.length === 0 ? (
             <div className="text-center py-4 text-secondary kd-mono small">
               <i className="bi bi-calendar-check fs-4 d-block mb-1 text-secondary opacity-50"></i>
-              NO COMMITMENTS SCHEDULED FOR {selectedDate} OCT
+              NO COMMITMENTS SCHEDULED FOR {selectedDate} {currentMonthShort}
             </div>
           ) : (
             currentItems.map((item) => (
